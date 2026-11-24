@@ -16,7 +16,8 @@
 - Font Awesome icons for the editor toolbar (`b691fec`).
 - Note cards show the start of the note formatted, like the web's
   `MarkdownPreview`: headings, lists, task checkboxes, quotes, code, inline
-  marks; first 600 characters, fading out when taller than the card (`b9b9a15`).
+  marks; first 600 characters, fading out when taller than the card (`b9b9a15`);
+  HTML entities shown as characters (`bd69243`).
 
 ### Fixes
 
