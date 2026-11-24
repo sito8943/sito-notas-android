@@ -26,7 +26,7 @@ Architecture, versions, auth and design system copied from `../SitoWallet`
 | `core/settings` | DataStore: theme, language, pull cursor per user, last sync |
 | `core/model` | Search and category-name rules ported from the web |
 | `feature/auth` | Sign in, forgot password, continue without account (no sign-up) |
-| `feature/notes` | List (search, favorites/category filters), editor with autosave, Markdown preview |
+| `feature/notes` | List (search, favorites/category filters), editor with autosave. `editor/`: rich-text editor over Markdown (one block per line, original syntax kept byte for byte), formatting toolbar, Markdown source mode |
 | `feature/categories`, `feature/trash`, `feature/settings` | Their screens and ViewModels |
 | `ui/` | Design system: tokens ported from the web (`apps/notes/src/styles/global.css`), Font Awesome icons (`FaIcon`, `res/drawable/fa_*.xml`), Poppins headings |
 | `navigation/` | Single NavHost with a bottom bar on the 4 tabs |

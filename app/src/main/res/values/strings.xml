@@ -57,15 +57,30 @@
 
     <!-- Editor -->
     <string name="editor_title_placeholder">Título</string>
-    <string name="editor_content_placeholder">Escribe aquí… (admite Markdown)</string>
-    <string name="editor_preview">Vista previa</string>
-    <string name="editor_edit">Editar</string>
-    <string name="editor_preview_empty">Esta nota no tiene contenido.</string>
+    <string name="editor_content_placeholder">Escribe aquí…</string>
     <string name="editor_categories">Categorías</string>
     <string name="editor_no_categories">Aún no hay categorías. Créalas en la pestaña Categorías.</string>
     <string name="editor_missing">Esta nota ya no existe.</string>
     <string name="editor_add_category">Categoría</string>
     <string name="editor_remove_category">Quitar %1$s</string>
+    <string name="editor_bold">Negrita</string>
+    <string name="editor_italic">Cursiva</string>
+    <string name="editor_strike">Tachado</string>
+    <string name="editor_heading">Encabezado</string>
+    <string name="editor_bullet_list">Lista con viñetas</string>
+    <string name="editor_ordered_list">Lista numerada</string>
+    <string name="editor_task_list">Lista de tareas</string>
+    <string name="editor_code">Código</string>
+    <string name="editor_link">Enlace</string>
+    <string name="editor_link_url">URL</string>
+    <string name="editor_link_insert">Insertar</string>
+    <string name="editor_markdown_mode">Editar como Markdown</string>
+    <string name="editor_rich_mode">Volver al texto con formato</string>
+    <string name="editor_markdown_hint">Editando el Markdown de la nota</string>
+    <string name="editor_raw_notice">Esta nota tiene imágenes, tablas u otro contenido que el editor con formato no puede mostrar, así que se abre como Markdown.</string>
+    <string name="editor_task">Tarea</string>
+    <string name="editor_task_done">Hecha</string>
+    <string name="editor_task_pending">Pendiente</string>
 
     <!-- Categorías -->
     <string name="categories_title">Categorías</string>

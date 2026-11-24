@@ -1,6 +1,20 @@
 package dev.sito8943.sitonotas.feature.notes.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import dev.sito8943.sitonotas.feature.notes.editor.EditorToolbar
+import dev.sito8943.sitonotas.feature.notes.editor.MarkdownDocument
+import dev.sito8943.sitonotas.feature.notes.editor.RichEditorState
+import dev.sito8943.sitonotas.feature.notes.editor.RichNoteEditor
+import dev.sito8943.sitonotas.ui.foundations.BorderWidth
+import dev.sito8943.sitonotas.ui.foundations.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,6 +74,25 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     val colors = NotesTheme.colors
     var pickingCategories by rememberSaveable { mutableStateOf(false) }
     var confirmTrash by rememberSaveable { mutableStateOf(false) }
+    val loaded = !state.loading && !state.missing
+
+    // Se edita con formato, como en la web. Una nota con algo que el editor
+    // solo sabe mostrar como Markdown (imagenes, tablas, HTML) se abre ya en
+    // Markdown. Nulo = aun no se decidio (la nota no ha cargado).
+    var markdownMode by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    var richEpoch by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(loaded) {
+        if (loaded && markdownMode == null) {
+            markdownMode = MarkdownDocument.hasRawContent(MarkdownDocument.parse(state.content))
+        }
+    }
+    val rich = if (loaded && markdownMode == false) {
+        // Se crea desde el contenido actual al cargar y cada vez que se vuelve
+        // de Markdown; despues el editor es la fuente y solo avisa de cambios.
+        remember(richEpoch) { RichEditorState(state.content, viewModel::onContentChange) }
+    } else {
+        null
+    }
 
     val leave = {
         viewModel.flush()
@@ -76,28 +109,37 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     ) {
         EditorHeader(
             title = state.title,
-            showActions = !state.loading && !state.missing,
-            preview = state.preview,
+            showActions = loaded,
             favorite = state.favorite,
             onBack = leave,
-            onTogglePreview = viewModel::togglePreview,
             onToggleFavorite = viewModel::toggleFavorite,
             onTrash = { confirmTrash = true },
         )
 
         when {
-            state.loading -> Unit
+            state.loading -> Box(Modifier.weight(1f))
             state.missing -> EmptyState(stringResource(R.string.editor_missing), icon = R.drawable.fa_note_sticky_regular)
-            else -> EditorBody(
-                title = state.title,
-                content = state.content,
-                preview = state.preview,
-                categories = state.selectedCategories,
-                onTitleChange = viewModel::onTitleChange,
-                onContentChange = viewModel::onContentChange,
-                onAddCategory = { pickingCategories = true },
-                onRemoveCategory = { id -> viewModel.setCategories(state.categoryIds - id) },
-            )
+            else -> {
+                EditorBody(
+                    title = state.title,
+                    content = state.content,
+                    rich = rich,
+                    categories = state.selectedCategories,
+                    onTitleChange = viewModel::onTitleChange,
+                    onContentChange = viewModel::onContentChange,
+                    onAddCategory = { pickingCategories = true },
+                    onRemoveCategory = { id -> viewModel.setCategories(state.categoryIds - id) },
+                    modifier = Modifier.weight(1f),
+                )
+                EditorToolbar(
+                    state = rich,
+                    markdownMode = markdownMode == true,
+                    onToggleMarkdown = {
+                        if (markdownMode == true) richEpoch++
+                        markdownMode = markdownMode != true
+                    },
+                )
+            }
         }
     }
 
@@ -135,10 +177,8 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
 private fun EditorHeader(
     title: String,
     showActions: Boolean,
-    preview: Boolean,
     favorite: Boolean,
     onBack: () -> Unit,
-    onTogglePreview: () -> Unit,
     onToggleFavorite: () -> Unit,
     onTrash: () -> Unit,
 ) {
@@ -179,13 +219,6 @@ private fun EditorHeader(
             }
             if (showActions) {
                 NotesIconButton(
-                    icon = if (preview) R.drawable.fa_pen else R.drawable.fa_eye,
-                    contentDescription = stringResource(
-                        if (preview) R.string.editor_edit else R.string.editor_preview,
-                    ),
-                    onClick = onTogglePreview,
-                )
-                NotesIconButton(
                     icon = if (favorite) R.drawable.fa_heart else R.drawable.fa_heart_regular,
                     contentDescription = stringResource(
                         if (favorite) R.string.note_unfavorite else R.string.note_favorite,
@@ -208,44 +241,38 @@ private fun EditorHeader(
 private fun EditorBody(
     title: String,
     content: String,
-    preview: Boolean,
+    rich: RichEditorState?,
     categories: List<Category>,
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
     onAddCategory: () -> Unit,
     onRemoveCategory: (Long) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = NotesTheme.colors
     val typography = NotesTheme.typography
     val titleStyle = typography.display.copy(fontSize = 30.sp, lineHeight = 38.sp, color = colors.textStrong)
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = spacing(4))
-            .padding(top = spacing(6), bottom = spacing(16)),
+            .padding(top = spacing(6)),
         verticalArrangement = Arrangement.spacedBy(spacing(6)),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing(3))) {
-            if (preview) {
-                NotesText(
-                    text = title.ifBlank { stringResource(R.string.note_untitled) },
-                    style = titleStyle,
-                    color = if (title.isBlank()) colors.textMuted else colors.textStrong,
-                )
-            } else {
-                PlainField(
-                    value = title,
-                    onValueChange = onTitleChange,
-                    placeholder = stringResource(R.string.editor_title_placeholder),
-                    style = titleStyle,
-                    singleLine = true,
-                )
-            }
+            PlainField(
+                value = title,
+                onValueChange = onTitleChange,
+                placeholder = stringResource(R.string.editor_title_placeholder),
+                style = titleStyle,
+                singleLine = true,
+                onNext = rich?.let { editor -> { editor.blocks.firstOrNull()?.let { editor.focus(it.id, 0) } } },
+            )
 
             // Como `NoteTags`: chips con X para quitar y el chip discontinuo
-            // para añadir. En vista previa solo se leen.
+            // para añadir.
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -255,36 +282,70 @@ private fun EditorBody(
                     CategoryChip(
                         name = category.name,
                         color = category.color,
-                        onRemove = if (preview) null else { { onRemoveCategory(category.id) } },
+                        onRemove = { onRemoveCategory(category.id) },
                         removeLabel = stringResource(R.string.editor_remove_category, category.name),
                     )
                 }
-                if (!preview) {
-                    DashedChip(
-                        icon = R.drawable.fa_plus,
-                        label = stringResource(R.string.editor_add_category),
-                        contentDescription = stringResource(R.string.editor_categories),
-                        onClick = onAddCategory,
-                    )
-                }
+                DashedChip(
+                    icon = R.drawable.fa_plus,
+                    label = stringResource(R.string.editor_add_category),
+                    contentDescription = stringResource(R.string.editor_categories),
+                    onClick = onAddCategory,
+                )
             }
         }
 
-        if (preview) {
-            if (content.isBlank()) {
-                NotesText(stringResource(R.string.editor_preview_empty), color = colors.textMuted)
-            } else {
-                MarkdownPreview(content)
-            }
+        if (rich != null) {
+            RichNoteEditor(state = rich, placeholder = stringResource(R.string.editor_content_placeholder))
         } else {
-            PlainField(
-                value = content,
-                onValueChange = onContentChange,
-                placeholder = stringResource(R.string.editor_content_placeholder),
-                style = typography.body.copy(color = colors.textStrong, lineHeight = 26.sp),
-                singleLine = false,
+            MarkdownSource(content = content, onContentChange = onContentChange)
+        }
+    }
+}
+
+/**
+ * El Markdown tal cual, como `.note-source` en la web: monoespaciada, en una
+ * tarjeta con borde. Avisa si la nota tiene algo que el editor con formato
+ * no sabe mostrar.
+ */
+@Composable
+private fun MarkdownSource(content: String, onContentChange: (String) -> Unit) {
+    val colors = NotesTheme.colors
+    val hasRaw = remember(content) { MarkdownDocument.hasRawContent(MarkdownDocument.parse(content)) }
+    Column(
+        modifier = Modifier.padding(bottom = spacing(10)),
+        verticalArrangement = Arrangement.spacedBy(spacing(3)),
+    ) {
+        if (hasRaw) {
+            NotesText(
+                stringResource(R.string.editor_raw_notice),
+                style = NotesTheme.typography.small,
+                color = colors.textMuted,
             )
         }
+        val style = NotesTheme.typography.body.copy(
+            color = colors.textStrong,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Normal,
+            fontSize = 14.sp,
+            lineHeight = 22.sp,
+        )
+        BasicTextField(
+            value = content,
+            onValueChange = onContentChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 320.dp)
+                .clip(Radius.lgShape)
+                .background(colors.surface)
+                .border(BorderWidth.thin, colors.border, Radius.lgShape)
+                .padding(spacing(4)),
+            textStyle = style,
+            cursorBrush = SolidColor(colors.accent),
+            // Sin autocorreccion: el teclado "arreglaba" la sintaxis (espacios
+            // tras el punto de una URL, mayusculas en `.png`).
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, autoCorrectEnabled = false),
+        )
     }
 }
 
@@ -297,6 +358,7 @@ private fun PlainField(
     style: androidx.compose.ui.text.TextStyle,
     singleLine: Boolean,
     modifier: Modifier = Modifier,
+    onNext: (() -> Unit)? = null,
 ) {
     val colors = NotesTheme.colors
     BasicTextField(
@@ -309,7 +371,9 @@ private fun PlainField(
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
             autoCorrectEnabled = true,
+            imeAction = if (onNext != null) ImeAction.Next else ImeAction.Default,
         ),
+        keyboardActions = KeyboardActions(onNext = { onNext?.invoke() }),
         decorationBox = { inner ->
             Box {
                 if (value.isEmpty()) NotesText(placeholder, style = style.copy(color = colors.textSubtle))
