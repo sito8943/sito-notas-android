@@ -24,6 +24,7 @@ enum class PreviewKind { PARAGRAPH, HEADING, BULLET, ORDERED, TASK, QUOTE, CODE,
  * - las lineas seguidas de un parrafo o una cita se unen con un espacio;
  * - las imagenes desaparecen y de las etiquetas HTML queda solo su texto;
  * - una linea `===`/`---` bajo un parrafo lo vuelve encabezado (setext);
+ * - las entidades HTML se ven como su caracter;
  * - de una tabla quedan los textos de sus celdas; las definiciones de enlace
  *   no se ven.
  */
@@ -130,14 +131,34 @@ object NotePreviewModel {
         }
     }
 
-    /** Fuera imagenes y etiquetas HTML (su texto se queda). */
-    fun clean(text: String): String = text
-        .replace(IMAGE, "")
-        .replace(HTML_TAG, "")
-        .trim()
+    /**
+     * Fuera imagenes y etiquetas HTML (su texto se queda) y las entidades
+     * (`&gt;`, `&#39;`) convertidas en su caracter, como hace el navegador.
+     */
+    fun clean(text: String): String = decodeEntities(
+        text
+            .replace(IMAGE, "")
+            .replace(HTML_TAG, ""),
+    ).trim()
+
+    private fun decodeEntities(text: String): String = ENTITY.replace(text) { m ->
+        val name = m.groupValues[1]
+        when {
+            name.startsWith("#x") || name.startsWith("#X") -> name.drop(2).toIntOrNull(16)?.let(::codePoint)
+            name.startsWith("#") -> name.drop(1).toIntOrNull()?.let(::codePoint)
+            else -> NAMED_ENTITIES[name]
+        } ?: m.value
+    }
+
+    private fun codePoint(value: Int): String? =
+        if (Character.isValidCodePoint(value) && value != 0) String(Character.toChars(value)) else null
 
     private fun join(a: String, b: String) = if (a.isEmpty()) b else if (b.isEmpty()) a else "$a $b"
 
+    private val ENTITY = Regex("&(#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z]{2,8});")
+    private val NAMED_ENTITIES = mapOf(
+        "amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'", "nbsp" to "\u00A0",
+    )
     private val IMAGE = Regex("!\\[[^\\]]*]\\([^)]*\\)")
     private val HTML_TAG = Regex("</?[A-Za-z][A-Za-z0-9-]*(\\s[^>]*)?/?>|<!--.*?-->")
     private val SETEXT = Regex("^ {0,3}(=+|-+)[ \\t]*$")

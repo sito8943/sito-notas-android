@@ -72,4 +72,9 @@ class NotePreviewModelTest {
         assertTrue(NotePreviewModel.build("").isEmpty())
         assertTrue(NotePreviewModel.build("\n\n![x](https://x.y/a.png)\n").isEmpty())
     }
+
+    @Test
+    fun `html entities show as their character`() {
+        assertEquals("a -> b & c 'd' &unknown;", NotePreviewModel.build("a -&gt; b &amp; c &#39;d&#x27; &unknown;").single().text)
+    }
 }
