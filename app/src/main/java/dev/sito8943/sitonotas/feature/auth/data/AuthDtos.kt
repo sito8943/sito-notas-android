@@ -1,5 +1,7 @@
 package dev.sito8943.sitonotas.feature.auth.data
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -7,11 +9,14 @@ import kotlinx.serialization.Serializable
  * `ForgotPasswordRequest`, `AuthDto`). No inventar campos.
  */
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class SignInRequest(
     val email: String,
     val password: String,
-    val rememberMe: Boolean = true,
+    // Sin `rememberMe: true` sito-auth no emite refresh token y la sesion cae a
+    // los 15 min. Json no codifica valores por defecto, asi que hay que forzarlo.
+    @EncodeDefault val rememberMe: Boolean = true,
 )
 
 @Serializable
