@@ -14,6 +14,9 @@
   edited line changes, so opening a note never marks it as modified. Notes with
   images, tables or HTML open in Markdown mode (`c18c224`).
 - Font Awesome icons for the editor toolbar (`b691fec`).
+- Note cards show the start of the note formatted, like the web's
+  `MarkdownPreview`: headings, lists, task checkboxes, quotes, code, inline
+  marks; first 600 characters, fading out when taller than the card (`b9b9a15`).
 
 ### Fixes
 
@@ -22,6 +25,7 @@
 ### Tests
 
 - Markdown round-trip and editor operation tests (`c18c224`).
+- Card preview truncation and blocks (`b9b9a15`).
 
 ### Build
 
