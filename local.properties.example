@@ -1,0 +1,11 @@
+# Copy to local.properties and adjust.
+sdk.dir=/Users/<your-user>/Library/Android/sdk
+
+# Backends as seen from the device.
+#   Android emulator -> http://10.0.2.2:<port>
+#   real device      -> http://<lan-ip>:<port>
+sitonotas.debug.apiUrl=http://10.0.2.2:8083
+sitonotas.debug.authUrl=http://10.0.2.2:8081
+# Optional release overrides (defaults: api.notes / api.auth .sito8943.com)
+# sitonotas.release.apiUrl=https://api.notes.sito8943.com
+# sitonotas.release.authUrl=https://api.auth.sito8943.com

@@ -1,0 +1,40 @@
+# Build outputs (no leading slash: matches app/build too)
+build/
+.gradle/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+captures/
+
+# Packaged artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Signing material: never committed
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# Machine specific (sdk.dir, dev backend IPs). Template: local.properties.example
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Versioned on purpose:
+#   gradle/wrapper/gradle-wrapper.jar
+#   app/schemas/  (Room schemas, needed for migrations)
