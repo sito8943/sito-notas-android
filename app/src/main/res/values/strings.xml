@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Idioma por defecto: español. El inglés vive en values-en. -->
 <resources>
-    <string name="app_name">SitoNotas</string>
+    <string name="app_name" translatable="false">Sito Notas</string>
     <string name="brand_name" translatable="false">Sito Notas</string>
 
     <!-- Comunes -->
