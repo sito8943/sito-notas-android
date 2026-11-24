@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.R
 import dev.sito8943.sitonotas.feature.notes.Note
 import dev.sito8943.sitonotas.feature.notes.ui.NoteCard
+import dev.sito8943.sitonotas.feature.notes.ui.TRASH_PREVIEW_HEIGHT
 import dev.sito8943.sitonotas.feature.trash.TrashConfirmation
 import dev.sito8943.sitonotas.feature.trash.TrashViewModel
 import dev.sito8943.sitonotas.ui.elements.ButtonColor
@@ -71,6 +72,7 @@ fun TrashScreen(viewModel: TrashViewModel) {
                         onClick = null,
                         modifier = Modifier.alpha(TRASHED_ALPHA),
                         showCategories = false,
+                        previewHeight = TRASH_PREVIEW_HEIGHT,
                         meta = { PurgeMeta(note) },
                         actions = {
                             NotesIconButton(

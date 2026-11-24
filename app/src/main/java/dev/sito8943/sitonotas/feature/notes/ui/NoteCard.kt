@@ -12,8 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.sito8943.sitonotas.R
 import dev.sito8943.sitonotas.feature.notes.Note
 import dev.sito8943.sitonotas.ui.elements.CategoryChip
@@ -26,7 +26,7 @@ import dev.sito8943.sitonotas.ui.theme.NotesTheme
 
 /**
  * Tarjeta de nota, como `PreviewNote` de la web: `rounded-xl`, superficie,
- * titulo en Poppins, extracto apagado, fecha y un pie con las categorias y
+ * titulo en Poppins, extracto con formato ([NotePreview]), fecha y un pie con las categorias y
  * las acciones.
  *
  * [meta] sustituye a la fecha (la papelera muestra cuando se borra) y
@@ -38,6 +38,8 @@ fun NoteCard(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     showCategories: Boolean = true,
+    /** Alto maximo del extracto: el de la lista o el de la papelera. */
+    previewHeight: Dp = LIST_PREVIEW_HEIGHT,
     meta: @Composable () -> Unit = { NoteDate(note) },
     actions: @Composable RowScope.() -> Unit = {},
 ) {
@@ -59,15 +61,7 @@ fun NoteCard(
                     color = colors.textStrong,
                     maxLines = 2,
                 )
-                val preview = notePreview(note.content)
-                if (preview.isNotEmpty()) {
-                    NotesText(
-                        text = preview,
-                        style = NotesTheme.typography.small.copy(lineHeight = 22.sp),
-                        color = colors.textMuted,
-                        maxLines = PREVIEW_MAX_LINES,
-                    )
-                }
+                NotePreview(note.content, maxHeight = previewHeight)
                 if (showCategories) meta()
             }
             Row(
@@ -126,19 +120,4 @@ private fun NoteDate(note: Note) {
     }
 }
 
-/** Texto plano para la tarjeta: sin marcas de Markdown ni lineas vacias. */
-internal fun notePreview(content: String): String = content
-    .lineSequence()
-    .map { it.trim() }
-    .filter { it.isNotEmpty() && !it.startsWith("```") }
-    .map { line ->
-        line.replace(Regex("^(#{1,6}|[-*+]\\s+\\[[ xX]?]|[-*+]|\\d+[.)]|>)\\s*"), "")
-            .replace(Regex("!?\\[([^\\]]*)]\\([^)]*\\)"), "$1")
-            .replace(Regex("[*_~`]"), "")
-    }
-    .take(PREVIEW_LINES)
-    .joinToString(" · ")
-
 private const val MAX_CHIPS = 2
-private const val PREVIEW_LINES = 6
-private const val PREVIEW_MAX_LINES = 6
