@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Hoja de notas con renglones, dentro de la zona segura del icono adaptativo (66dp). -->
+<!-- Logo de Sito Notas (apps/notes/public/favicon.svg), centrado en la zona segura (66dp). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M38,30h24l10,10v34a4,4 0,0 1,-4 4H38a4,4 0,0 1,-4 -4V34a4,4 0,0 1,4 -4z" />
-    <path
-        android:fillColor="#C1D0E0"
-        android:pathData="M62,30v8a2,2 0,0 0,2 2h8z" />
-    <path
-        android:fillColor="#041E42"
-        android:pathData="M41,48h26v3H41zM41,56h26v3H41zM41,64h18v3H41z" />
+    <group
+        android:scaleX="0.0947"
+        android:scaleY="0.0947"
+        android:translateX="29"
+        android:translateY="29.5">
+        <path
+            android:fillColor="#FBFBFB"
+            android:pathData="M483,472V517H345L333.5,472H483ZM528,517H483V0H528V517ZM345,149H300V0H345V149ZM483,0V45H345V0H483ZM45,45V0H168L179.5,45H45ZM0,0H45V517H0V0ZM168,368H213V517H168V368ZM45,517V472H168V517H45ZM168,0L213,0L345,517H300L168,0Z" />
+    </group>
 </vector>
