@@ -1,5 +1,6 @@
 package dev.sito8943.sitonotas.feature.notes.ui
 
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,7 +65,12 @@ fun NotePreview(content: String, modifier: Modifier = Modifier, maxHeight: Dp = 
     val items = remember(content) { NotePreviewModel.build(content) }
     if (items.isEmpty()) return
     val colors = NotesTheme.colors
-    val base = NotesTheme.typography.small.copy(color = colors.textMuted, lineHeight = 23.sp)
+    val base = NotesTheme.typography.small.copy(
+        color = colors.textMuted,
+        lineHeight = 23.sp,
+        // Glifo centrado en la linea para que casillas y viñetas queden alineadas.
+        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+    )
     var overflows by remember { mutableStateOf(false) }
 
     // Se mide el contenido sin limite y se recorta a [maxHeight]; el

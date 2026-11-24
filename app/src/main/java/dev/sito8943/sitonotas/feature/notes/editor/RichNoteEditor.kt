@@ -1,5 +1,6 @@
 package dev.sito8943.sitonotas.feature.notes.editor
 
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -127,7 +128,8 @@ private fun EditorBlockRow(
     modifier: Modifier = Modifier,
 ) {
     val colors = NotesTheme.colors
-    val style = blockStyle(block, colors)
+    // Glifo centrado en la linea para que casillas y viñetas queden alineadas.
+    val style = blockStyle(block, colors).copy(lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None))
     val transformation = remember(value.text, value.selection, focused, block.type, colors) {
         BlockTransformation(
             inline = block.supportsInline,
