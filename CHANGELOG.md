@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Font Awesome Free 6.3.0 icons and Poppins Bold headings, as the web (`e62421d`).
+- Every screen restyled after the Sito Notas web app: web palette (light and
+  dark), typography, radii, cards, filter tabs, editor header and tags, trash
+  purge countdown, settings cards, empty states (`00fa908`).
+
+### Fixes
+
+- Launcher label is now "Sito Notas" (`7e0a141`).
+
+### Build
+
+- Removed `material-icons-extended` (`ed743b9`).
+
 ## 0.1.0 — 2026-11-24
 
 First version: offline-first notes that sync with Sito Notes.
