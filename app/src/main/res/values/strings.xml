@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Idioma por defecto: español. El inglés vive en values-en. -->
+<resources>
+    <string name="app_name">SitoNotas</string>
+    <string name="brand_name" translatable="false">Sito Notas</string>
+
+    <!-- Comunes -->
+    <string name="common_back">Volver</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_confirm">Confirmar</string>
+    <string name="common_delete">Eliminar</string>
+    <string name="common_edit">Editar</string>
+    <string name="common_save">Guardar</string>
+
+    <!-- Pestañas -->
+    <string name="tab_notes">Notas</string>
+    <string name="tab_categories">Categorías</string>
+    <string name="tab_trash">Papelera</string>
+    <string name="tab_settings">Ajustes</string>
+
+    <!-- Login -->
+    <string name="auth_sign_in_title">Inicia sesión</string>
+    <string name="auth_sign_in_subtitle">Con la misma cuenta de Sito para sincronizar tus notas</string>
+    <string name="auth_email">Correo</string>
+    <string name="auth_password">Contraseña</string>
+    <string name="auth_sign_in">Entrar</string>
+    <string name="auth_forgot_password">Olvidé mi contraseña</string>
+    <string name="auth_continue_without_account">Seguir sin cuenta</string>
+    <string name="auth_reset_sent">Si la cuenta existe, te enviamos un correo para cambiar la contraseña.</string>
+    <string name="auth_error_email_invalid">Escribe un correo válido</string>
+    <string name="auth_error_password_required">Escribe tu contraseña</string>
+    <string name="auth_error_invalid_credentials">Correo o contraseña incorrectos</string>
+    <string name="auth_error_account_not_found">No hay ninguna cuenta con ese correo</string>
+    <string name="auth_error_invalid_input">El servidor rechazó esos datos</string>
+    <string name="auth_error_network">No se pudo conectar con el servidor. Revisa la conexión.</string>
+    <string name="auth_error_unknown">Algo salió mal. Inténtalo de nuevo.</string>
+    <string name="password_show">Mostrar contraseña</string>
+    <string name="password_hide">Ocultar contraseña</string>
+
+    <!-- Notas -->
+    <string name="notes_title">Notas</string>
+    <string name="notes_search">Buscar</string>
+    <string name="notes_search_clear">Borrar búsqueda</string>
+    <string name="notes_filter_favorites">Favoritas</string>
+    <string name="notes_new">Nueva nota</string>
+    <string name="notes_empty">Aún no hay notas. Pulsa + para escribir la primera.</string>
+    <string name="notes_empty_filtered">Ninguna nota coincide con la búsqueda.</string>
+    <string name="note_untitled">Sin título</string>
+    <string name="note_favorite">Marcar como favorita</string>
+    <string name="note_unfavorite">Quitar de favoritas</string>
+    <string name="note_trash">Mover a la papelera</string>
+    <string name="note_trash_confirm_title">¿Mover a la papelera?</string>
+    <string name="note_trash_confirm_message">Podrás restaurarla desde la papelera.</string>
+    <string name="note_pending_sync">Pendiente de sincronizar</string>
+
+    <!-- Editor -->
+    <string name="editor_title_placeholder">Título</string>
+    <string name="editor_content_placeholder">Escribe aquí… (admite Markdown)</string>
+    <string name="editor_preview">Vista previa</string>
+    <string name="editor_edit">Editar</string>
+    <string name="editor_preview_empty">Esta nota no tiene contenido.</string>
+    <string name="editor_categories">Categorías</string>
+    <string name="editor_no_categories">Aún no hay categorías. Créalas en la pestaña Categorías.</string>
+    <string name="editor_missing">Esta nota ya no existe.</string>
+
+    <!-- Categorías -->
+    <string name="categories_title">Categorías</string>
+    <string name="categories_empty">Aún no hay categorías.</string>
+    <string name="categories_new">Nueva categoría</string>
+    <string name="categories_edit">Editar categoría</string>
+    <string name="categories_name">Nombre</string>
+    <string name="categories_description">Descripción</string>
+    <string name="categories_color">Color</string>
+    <string name="categories_error_name_required">Escribe un nombre</string>
+    <string name="categories_error_name_taken">Ya hay una categoría con ese nombre</string>
+    <string name="categories_error_not_found">Esta categoría ya no existe</string>
+    <string name="categories_delete_title">¿Eliminar categoría?</string>
+    <string name="categories_delete_message">Se eliminará «%1$s» para siempre. Las notas no se borran, solo pierden esta categoría.</string>
+    <plurals name="categories_uses">
+        <item quantity="one">%d nota</item>
+        <item quantity="many">%d notas</item>
+        <item quantity="other">%d notas</item>
+    </plurals>
+
+    <!-- Papelera -->
+    <string name="trash_title">Papelera</string>
+    <string name="trash_hint">Las notas se eliminan para siempre a los 30 días.</string>
+    <string name="trash_empty">La papelera está vacía.</string>
+    <string name="trash_empty_action">Vaciar</string>
+    <string name="trash_restore">Restaurar</string>
+    <string name="trash_delete_forever">Eliminar para siempre</string>
+    <string name="trash_delete_title">¿Eliminar para siempre?</string>
+    <string name="trash_empty_title">¿Vaciar la papelera?</string>
+    <string name="trash_delete_message">No se puede deshacer.</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_account">Cuenta</string>
+    <string name="settings_no_account">Sin cuenta: las notas se guardan solo en este teléfono.</string>
+    <string name="settings_signed_in_as">Sesión iniciada como %1$s</string>
+    <string name="settings_sign_out">Cerrar sesión</string>
+    <string name="settings_sign_out_message">Las notas se quedan en este teléfono.</string>
+    <string name="settings_sign_out_pending">Hay cambios sin sincronizar. Se quedan en este teléfono y se subirán cuando vuelvas a entrar.</string>
+    <string name="settings_sync">Sincronización</string>
+    <string name="settings_sync_now">Sincronizar ahora</string>
+    <string name="settings_sync_idle">Aún no se ha sincronizado en esta sesión.</string>
+    <string name="settings_sync_running">Sincronizando…</string>
+    <string name="settings_sync_ok">Todo sincronizado.</string>
+    <string name="settings_sync_offline">Sin conexión. Se sincronizará cuando haya red.</string>
+    <string name="settings_sync_failed">No se pudo sincronizar: %1$s</string>
+    <string name="settings_sync_last">Última sincronización: %1$s</string>
+    <string name="settings_sync_nothing_pending">Nada pendiente de subir.</string>
+    <plurals name="settings_sync_pending">
+        <item quantity="one">%d cambio pendiente de subir</item>
+        <item quantity="many">%d cambios pendientes de subir</item>
+        <item quantity="other">%d cambios pendientes de subir</item>
+    </plurals>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_theme_system">Como el sistema</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_system">Como el sistema</string>
+    <string name="settings_language_es">Español</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_version">Versión %1$s</string>
+</resources>
