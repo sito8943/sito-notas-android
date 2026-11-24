@@ -8,10 +8,20 @@
 - Every screen restyled after the Sito Notas web app: web palette (light and
   dark), typography, radii, cards, filter tabs, editor header and tags, trash
   purge countdown, settings cards, empty states (`00fa908`).
+- Notes open in a rich-text editor (like the web's Tiptap editor) with a
+  formatting toolbar above the keyboard and a switch to the Markdown source;
+  checklists are tappable checkboxes. Markdown is kept byte for byte: only the
+  edited line changes, so opening a note never marks it as modified. Notes with
+  images, tables or HTML open in Markdown mode (`c18c224`).
+- Font Awesome icons for the editor toolbar (`b691fec`).
 
 ### Fixes
 
 - Launcher label is now "Sito Notas" (`7e0a141`).
+
+### Tests
+
+- Markdown round-trip and editor operation tests (`c18c224`).
 
 ### Build
 
