@@ -1,5 +1,6 @@
 package dev.sito8943.sitonotas.ui.patterns
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import dev.sito8943.sitonotas.ui.elements.IconButtonSize
 import dev.sito8943.sitonotas.ui.elements.NotesIconButton
 import dev.sito8943.sitonotas.ui.foundations.Radius
@@ -23,7 +23,7 @@ import dev.sito8943.sitonotas.ui.theme.NotesTheme
  * generico: aqui la entidad la captura el lambda del que crea la accion.
  */
 data class EntityAction(
-    val icon: ImageVector,
+    @param:DrawableRes val icon: Int,
     val contentDescription: String,
     val onClick: () -> Unit,
     val tint: Color? = null,
@@ -43,6 +43,7 @@ data class EntityMenuItem(
 )
 
 /**
+ * Fila en tarjeta (`rounded-xl bg-base-light`, como `TagRow` de la web).
  * Portado del patron `EntityCard`: contenido pulsable mas una fila de acciones
  * en linea. Las acciones viven en la propia tarjeta para que editar y borrar no
  * obliguen a entrar en el detalle.
@@ -58,13 +59,13 @@ fun EntityCard(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = Radius.mdShape,
+        shape = Radius.lgShape,
         color = colors.surface,
     ) {
         Row(
             modifier = Modifier
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .padding(spacing(3)),
+                .padding(start = spacing(4), top = spacing(2), bottom = spacing(2), end = spacing(1)),
             horizontalArrangement = Arrangement.spacedBy(spacing(3)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -76,7 +77,7 @@ fun EntityCard(
                     contentDescription = action.contentDescription,
                     onClick = action.onClick,
                     tint = action.tint ?: colors.textMuted,
-                    size = IconButtonSize.LG,
+                    size = IconButtonSize.MD,
                     enabled = action.enabled,
                 )
             }

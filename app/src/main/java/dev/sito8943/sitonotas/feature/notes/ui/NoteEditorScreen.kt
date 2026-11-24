@@ -1,11 +1,26 @@
 package dev.sito8943.sitonotas.feature.notes.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import dev.sito8943.sitonotas.feature.notes.editor.EditorToolbar
+import dev.sito8943.sitonotas.feature.notes.editor.MarkdownDocument
+import dev.sito8943.sitonotas.feature.notes.editor.RichEditorState
+import dev.sito8943.sitonotas.feature.notes.editor.RichNoteEditor
+import dev.sito8943.sitonotas.ui.foundations.BorderWidth
+import dev.sito8943.sitonotas.ui.foundations.Radius
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,15 +34,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.R
@@ -48,7 +57,8 @@ import dev.sito8943.sitonotas.feature.notes.NoteEditorViewModel
 import dev.sito8943.sitonotas.ui.elements.ButtonVariant
 import dev.sito8943.sitonotas.ui.elements.CategoryChip
 import dev.sito8943.sitonotas.ui.elements.ColorDot
-import dev.sito8943.sitonotas.ui.elements.IconButtonSize
+import dev.sito8943.sitonotas.ui.elements.DashedChip
+import dev.sito8943.sitonotas.ui.elements.FaIcon
 import dev.sito8943.sitonotas.ui.elements.NotesButton
 import dev.sito8943.sitonotas.ui.elements.NotesIconButton
 import dev.sito8943.sitonotas.ui.elements.NotesText
@@ -64,6 +74,25 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     val colors = NotesTheme.colors
     var pickingCategories by rememberSaveable { mutableStateOf(false) }
     var confirmTrash by rememberSaveable { mutableStateOf(false) }
+    val loaded = !state.loading && !state.missing
+
+    // Se edita con formato, como en la web. Una nota con algo que el editor
+    // solo sabe mostrar como Markdown (imagenes, tablas, HTML) se abre ya en
+    // Markdown. Nulo = aun no se decidio (la nota no ha cargado).
+    var markdownMode by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    var richEpoch by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(loaded) {
+        if (loaded && markdownMode == null) {
+            markdownMode = MarkdownDocument.hasRawContent(MarkdownDocument.parse(state.content))
+        }
+    }
+    val rich = if (loaded && markdownMode == false) {
+        // Se crea desde el contenido actual al cargar y cada vez que se vuelve
+        // de Markdown; despues el editor es la fuente y solo avisa de cambios.
+        remember(richEpoch) { RichEditorState(state.content, viewModel::onContentChange) }
+    } else {
+        null
+    }
 
     val leave = {
         viewModel.flush()
@@ -78,65 +107,39 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
             .safeDrawingPadding()
             .imePadding(),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing(1), vertical = spacing(1)),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NotesIconButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.common_back),
-                onClick = leave,
-                tint = colors.textStrong,
-                size = IconButtonSize.LG,
-            )
-            Box(Modifier.weight(1f))
-            if (!state.missing) {
-                NotesIconButton(
-                    icon = if (state.preview) Icons.Outlined.Edit else Icons.Outlined.Visibility,
-                    contentDescription = stringResource(
-                        if (state.preview) R.string.editor_edit else R.string.editor_preview,
-                    ),
-                    onClick = viewModel::togglePreview,
-                    size = IconButtonSize.LG,
-                )
-                NotesIconButton(
-                    icon = if (state.favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = stringResource(
-                        if (state.favorite) R.string.note_unfavorite else R.string.note_favorite,
-                    ),
-                    onClick = viewModel::toggleFavorite,
-                    tint = if (state.favorite) colors.warning else colors.textMuted,
-                    size = IconButtonSize.LG,
-                )
-                NotesIconButton(
-                    icon = Icons.AutoMirrored.Outlined.Label,
-                    contentDescription = stringResource(R.string.editor_categories),
-                    onClick = { pickingCategories = true },
-                    size = IconButtonSize.LG,
-                )
-                NotesIconButton(
-                    icon = Icons.Outlined.Delete,
-                    contentDescription = stringResource(R.string.note_trash),
-                    onClick = { confirmTrash = true },
-                    size = IconButtonSize.LG,
-                )
-            }
-        }
+        EditorHeader(
+            title = state.title,
+            showActions = loaded,
+            favorite = state.favorite,
+            onBack = leave,
+            onToggleFavorite = viewModel::toggleFavorite,
+            onTrash = { confirmTrash = true },
+        )
 
         when {
-            state.loading -> Unit
-            state.missing -> EmptyState(stringResource(R.string.editor_missing))
-            else -> EditorBody(
-                title = state.title,
-                content = state.content,
-                preview = state.preview,
-                categories = state.selectedCategories,
-                onTitleChange = viewModel::onTitleChange,
-                onContentChange = viewModel::onContentChange,
-                onCategoriesClick = { pickingCategories = true },
-            )
+            state.loading -> Box(Modifier.weight(1f))
+            state.missing -> EmptyState(stringResource(R.string.editor_missing), icon = R.drawable.fa_note_sticky_regular)
+            else -> {
+                EditorBody(
+                    title = state.title,
+                    content = state.content,
+                    rich = rich,
+                    categories = state.selectedCategories,
+                    onTitleChange = viewModel::onTitleChange,
+                    onContentChange = viewModel::onContentChange,
+                    onAddCategory = { pickingCategories = true },
+                    onRemoveCategory = { id -> viewModel.setCategories(state.categoryIds - id) },
+                    modifier = Modifier.weight(1f),
+                )
+                EditorToolbar(
+                    state = rich,
+                    markdownMode = markdownMode == true,
+                    onToggleMarkdown = {
+                        if (markdownMode == true) richEpoch++
+                        markdownMode = markdownMode != true
+                    },
+                )
+            }
         }
     }
 
@@ -166,69 +169,183 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     )
 }
 
+/**
+ * Barra superior de la nota, como `NoteHeader` de la web: volver, miga
+ * "Notas › titulo" y las acciones, con una linea debajo.
+ */
+@Composable
+private fun EditorHeader(
+    title: String,
+    showActions: Boolean,
+    favorite: Boolean,
+    onBack: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onTrash: () -> Unit,
+) {
+    val colors = NotesTheme.colors
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = spacing(1)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            NotesIconButton(
+                icon = R.drawable.fa_arrow_left,
+                contentDescription = stringResource(R.string.common_back),
+                onClick = onBack,
+                tint = colors.textMuted,
+            )
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(spacing(2)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NotesText(
+                    stringResource(R.string.notes_title),
+                    style = NotesTheme.typography.small,
+                    color = colors.textMuted,
+                    maxLines = 1,
+                )
+                FaIcon(R.drawable.fa_chevron_right, contentDescription = null, size = 10.dp)
+                NotesText(
+                    title.ifBlank { stringResource(R.string.note_untitled) },
+                    style = NotesTheme.typography.small,
+                    color = colors.textStrong,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+            if (showActions) {
+                NotesIconButton(
+                    icon = if (favorite) R.drawable.fa_heart else R.drawable.fa_heart_regular,
+                    contentDescription = stringResource(
+                        if (favorite) R.string.note_unfavorite else R.string.note_favorite,
+                    ),
+                    onClick = onToggleFavorite,
+                    tint = if (favorite) colors.accent else colors.textMuted,
+                )
+                NotesIconButton(
+                    icon = R.drawable.fa_trash,
+                    contentDescription = stringResource(R.string.note_trash),
+                    onClick = onTrash,
+                )
+            }
+        }
+        HorizontalDivider(color = colors.border)
+    }
+}
+
 @Composable
 private fun EditorBody(
     title: String,
     content: String,
-    preview: Boolean,
+    rich: RichEditorState?,
     categories: List<Category>,
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
-    onCategoriesClick: () -> Unit,
+    onAddCategory: () -> Unit,
+    onRemoveCategory: (Long) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = NotesTheme.colors
     val typography = NotesTheme.typography
+    val titleStyle = typography.display.copy(fontSize = 30.sp, lineHeight = 38.sp, color = colors.textStrong)
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing(5)),
-        verticalArrangement = Arrangement.spacedBy(spacing(3)),
+            .padding(horizontal = spacing(4))
+            .padding(top = spacing(6)),
+        verticalArrangement = Arrangement.spacedBy(spacing(6)),
     ) {
-        if (preview) {
-            NotesText(
-                text = title.ifBlank { stringResource(R.string.note_untitled) },
-                style = typography.title.copy(fontSize = 24.sp),
-                color = if (title.isBlank()) colors.textMuted else colors.textStrong,
-            )
-        } else {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing(3))) {
             PlainField(
                 value = title,
                 onValueChange = onTitleChange,
                 placeholder = stringResource(R.string.editor_title_placeholder),
-                style = typography.title.copy(fontSize = 24.sp, color = colors.textStrong),
+                style = titleStyle,
                 singleLine = true,
+                onNext = rich?.let { editor -> { editor.blocks.firstOrNull()?.let { editor.focus(it.id, 0) } } },
             )
-        }
 
-        if (categories.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .clickable(onClick = onCategoriesClick),
-                horizontalArrangement = Arrangement.spacedBy(spacing(2)),
+            // Como `NoteTags`: chips con X para quitar y el chip discontinuo
+            // para añadir.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                categories.forEach { CategoryChip(it.name, it.color) }
+                categories.forEach { category ->
+                    CategoryChip(
+                        name = category.name,
+                        color = category.color,
+                        onRemove = { onRemoveCategory(category.id) },
+                        removeLabel = stringResource(R.string.editor_remove_category, category.name),
+                    )
+                }
+                DashedChip(
+                    icon = R.drawable.fa_plus,
+                    label = stringResource(R.string.editor_add_category),
+                    contentDescription = stringResource(R.string.editor_categories),
+                    onClick = onAddCategory,
+                )
             }
         }
 
-        if (preview) {
-            if (content.isBlank()) {
-                NotesText(stringResource(R.string.editor_preview_empty), color = colors.textMuted)
-            } else {
-                MarkdownPreview(content, Modifier.padding(bottom = spacing(10)))
-            }
+        if (rich != null) {
+            RichNoteEditor(state = rich, placeholder = stringResource(R.string.editor_content_placeholder))
         } else {
-            PlainField(
-                value = content,
-                onValueChange = onContentChange,
-                placeholder = stringResource(R.string.editor_content_placeholder),
-                style = typography.body.copy(color = colors.textStrong, lineHeight = 24.sp),
-                singleLine = false,
-                modifier = Modifier.padding(bottom = spacing(10)),
+            MarkdownSource(content = content, onContentChange = onContentChange)
+        }
+    }
+}
+
+/**
+ * El Markdown tal cual, como `.note-source` en la web: monoespaciada, en una
+ * tarjeta con borde. Avisa si la nota tiene algo que el editor con formato
+ * no sabe mostrar.
+ */
+@Composable
+private fun MarkdownSource(content: String, onContentChange: (String) -> Unit) {
+    val colors = NotesTheme.colors
+    val hasRaw = remember(content) { MarkdownDocument.hasRawContent(MarkdownDocument.parse(content)) }
+    Column(
+        modifier = Modifier.padding(bottom = spacing(10)),
+        verticalArrangement = Arrangement.spacedBy(spacing(3)),
+    ) {
+        if (hasRaw) {
+            NotesText(
+                stringResource(R.string.editor_raw_notice),
+                style = NotesTheme.typography.small,
+                color = colors.textMuted,
             )
         }
+        val style = NotesTheme.typography.body.copy(
+            color = colors.textStrong,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Normal,
+            fontSize = 14.sp,
+            lineHeight = 22.sp,
+        )
+        BasicTextField(
+            value = content,
+            onValueChange = onContentChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 320.dp)
+                .clip(Radius.lgShape)
+                .background(colors.surface)
+                .border(BorderWidth.thin, colors.border, Radius.lgShape)
+                .padding(spacing(4)),
+            textStyle = style,
+            cursorBrush = SolidColor(colors.accent),
+            // Sin autocorreccion: el teclado "arreglaba" la sintaxis (espacios
+            // tras el punto de una URL, mayusculas en `.png`).
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, autoCorrectEnabled = false),
+        )
     }
 }
 
@@ -241,6 +358,7 @@ private fun PlainField(
     style: androidx.compose.ui.text.TextStyle,
     singleLine: Boolean,
     modifier: Modifier = Modifier,
+    onNext: (() -> Unit)? = null,
 ) {
     val colors = NotesTheme.colors
     BasicTextField(
@@ -253,7 +371,9 @@ private fun PlainField(
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
             autoCorrectEnabled = true,
+            imeAction = if (onNext != null) ImeAction.Next else ImeAction.Default,
         ),
+        keyboardActions = KeyboardActions(onNext = { onNext?.invoke() }),
         decorationBox = { inner ->
             Box {
                 if (value.isEmpty()) NotesText(placeholder, style = style.copy(color = colors.textSubtle))

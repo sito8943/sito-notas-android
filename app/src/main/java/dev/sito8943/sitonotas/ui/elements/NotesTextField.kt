@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import dev.sito8943.sitonotas.R
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.semantics.contentType
@@ -22,17 +23,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
 import dev.sito8943.sitonotas.ui.foundations.Radius
 import dev.sito8943.sitonotas.ui.foundations.spacing
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 
 /**
- * Portado del elemento `TextField`. El mensaje de error va debajo y ocupa sitio
+ * Campo de formulario, como `TextInput` de la web (esquinas `rounded-lg`,
+ * etiqueta flotante). El mensaje de error va debajo y ocupa sitio
  * solo cuando existe, para que el formulario no salte al aparecer.
  */
 @Composable
@@ -78,7 +77,8 @@ fun NotesTextField(
             singleLine = singleLine,
             minLines = minLines,
             shape = Radius.mdShape,
-            label = { NotesText(label, style = NotesTheme.typography.caption) },
+            textStyle = NotesTheme.typography.body,
+            label = { NotesText(label, style = NotesTheme.typography.small) },
             placeholder = placeholder?.let { { NotesText(it, color = colors.textSubtle) } },
             trailingIcon = trailing,
             visualTransformation = visualTransformation,
@@ -91,13 +91,19 @@ fun NotesTextField(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = colors.textStrong,
                 unfocusedTextColor = colors.textStrong,
-                focusedContainerColor = colors.surface,
-                unfocusedContainerColor = colors.surface,
+                // Como `.text-input` de la web: fondo transparente, borde derivado
+                // del color del texto (contrasta en claro y en oscuro) y la
+                // marca al enfocar.
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
                 focusedBorderColor = colors.accent,
-                unfocusedBorderColor = colors.border,
+                unfocusedBorderColor = colors.textStrong.copy(alpha = BORDER_ALPHA),
+                disabledBorderColor = colors.textStrong.copy(alpha = BORDER_ALPHA / 2),
+                disabledTextColor = colors.textStrong.copy(alpha = 0.6f),
                 errorBorderColor = colors.negative,
-                focusedLabelColor = colors.textMuted,
-                unfocusedLabelColor = colors.textSubtle,
+                focusedLabelColor = colors.accent,
+                unfocusedLabelColor = colors.textMuted,
                 errorLabelColor = colors.negative,
                 cursorColor = colors.accent,
             ),
@@ -146,12 +152,13 @@ fun NotesPasswordField(
         },
         trailing = {
             IconButton(onClick = { visible = !visible }) {
-                Icon(
-                    imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                FaIcon(
+                    icon = if (visible) R.drawable.fa_eye_slash else R.drawable.fa_eye,
                     contentDescription = stringResource(
                         if (visible) R.string.password_hide else R.string.password_show,
                     ),
-                    tint = colors.textSubtle,
+                    tint = colors.textMuted,
+                    size = 16.dp,
                 )
             }
         },
@@ -159,3 +166,4 @@ fun NotesPasswordField(
 }
 
 private const val MULTILINE_MIN_LINES = 3
+private const val BORDER_ALPHA = 0.22f

@@ -1,46 +1,38 @@
 package dev.sito8943.sitonotas.ui.templates
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Arrangement as LayoutArrangement
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import dev.sito8943.sitonotas.R
-import dev.sito8943.sitonotas.ui.elements.IconButtonSize
-import dev.sito8943.sitonotas.ui.elements.NotesIconButton
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import dev.sito8943.sitonotas.ui.elements.FaIcon
 import dev.sito8943.sitonotas.ui.elements.NotesText
 import dev.sito8943.sitonotas.ui.foundations.spacing
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 
 /**
- * Andamiaje de pagina: fondo, titulo y contenido. Portado de
- * `shared/design/templates/Page`.
+ * Andamiaje de las pestañas: fondo de pagina, titulo en Poppins (como el
+ * `h1` de las paginas de la web: `trash-title`, `tags-title`) con su
+ * descripcion opcional debajo, y el contenido.
  *
  * No aplica safeDrawingPadding: de eso se encarga el Scaffold que la contiene,
  * que ya conoce la barra de pestañas.
- *
- * `onBack` dibuja la flecha de volver junto al titulo. Las pantallas que se
- * apilan (los formularios) la pasan: el gesto del sistema existe, pero sin un
- * control visible no hay forma de saber que se puede salir sin guardar.
- *
- * `leading` ocupa ese mismo hueco cuando la pantalla no se apila: una accion
- * pegada al titulo en vez de al borde final.
  */
 @Composable
 fun Page(
     title: String,
     modifier: Modifier = Modifier,
-    onBack: (() -> Unit)? = null,
-    leading: (@Composable () -> Unit)? = null,
+    description: String? = null,
     actions: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -48,46 +40,60 @@ fun Page(
         modifier = modifier
             .fillMaxSize()
             .background(NotesTheme.colors.background),
-        verticalArrangement = Arrangement.spacedBy(spacing(3)),
+        verticalArrangement = Arrangement.spacedBy(spacing(4)),
     ) {
-        Row(
-            modifier = Modifier.padding(
-                start = if (onBack != null || leading != null) spacing(2) else spacing(5),
-                end = spacing(5),
-                top = spacing(4),
-            ),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(horizontal = spacing(4)).padding(top = spacing(3)),
+            verticalArrangement = Arrangement.spacedBy(spacing(1)),
         ) {
-            if (onBack != null) {
-                NotesIconButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.common_back),
-                    onClick = onBack,
-                    tint = NotesTheme.colors.textStrong,
-                    size = IconButtonSize.LG,
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NotesText(
+                    text = title,
+                    style = NotesTheme.typography.display,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                )
+                // Al borde final del titulo: son acciones de la pantalla.
+                actions()
+            }
+            if (description != null) {
+                NotesText(
+                    text = description,
+                    style = NotesTheme.typography.small,
+                    color = NotesTheme.colors.textMuted,
                 )
             }
-            leading?.invoke()
-            NotesText(
-                text = title,
-                style = NotesTheme.typography.title,
-                modifier = Modifier.weight(1f),
-            )
-            // Al borde final del titulo, no en una fila propia debajo: son
-            // acciones de la pantalla, no contenido.
-            actions()
         }
         content()
     }
 }
 
-/** Estado vacio. Portado de `templates/Empty`. */
+/**
+ * Estado vacio, como `trash-empty` / `tags-empty` de la web: icono grande y
+ * texto apagado, centrados.
+ */
 @Composable
-fun EmptyState(text: String, modifier: Modifier = Modifier) {
-    NotesText(
-        text = text,
-        modifier = modifier.padding(horizontal = spacing(5), vertical = spacing(6)),
-        style = NotesTheme.typography.body,
-        color = NotesTheme.colors.textMuted,
-    )
+fun EmptyState(
+    text: String,
+    modifier: Modifier = Modifier,
+    @DrawableRes icon: Int? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing(6), vertical = spacing(16)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing(3)),
+    ) {
+        if (icon != null) FaIcon(icon, contentDescription = null, size = 48.dp)
+        NotesText(
+            text = text,
+            style = NotesTheme.typography.body,
+            color = NotesTheme.colors.textMuted,
+            align = TextAlign.Center,
+        )
+    }
 }

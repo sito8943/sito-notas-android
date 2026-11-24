@@ -31,8 +31,10 @@
     <string name="password_hide">Hide password</string>
 
     <string name="notes_title">Notes</string>
-    <string name="notes_search">Search</string>
+    <string name="notes_search">Search in titles and content</string>
     <string name="notes_search_clear">Clear search</string>
+    <string name="notes_filter_all">All</string>
+    <string name="notes_manage_categories">Edit categories</string>
     <string name="notes_filter_favorites">Favorites</string>
     <string name="notes_new">New note</string>
     <string name="notes_empty">No notes yet. Tap + to write the first one.</string>
@@ -46,16 +48,34 @@
     <string name="note_pending_sync">Not synced yet</string>
 
     <string name="editor_title_placeholder">Title</string>
-    <string name="editor_content_placeholder">Write here… (Markdown supported)</string>
-    <string name="editor_preview">Preview</string>
-    <string name="editor_edit">Edit</string>
-    <string name="editor_preview_empty">This note is empty.</string>
+    <string name="editor_content_placeholder">Write here…</string>
     <string name="editor_categories">Categories</string>
     <string name="editor_no_categories">No categories yet. Create them in the Categories tab.</string>
     <string name="editor_missing">This note no longer exists.</string>
+    <string name="editor_add_category">Category</string>
+    <string name="editor_remove_category">Remove %1$s</string>
+    <string name="editor_bold">Bold</string>
+    <string name="editor_italic">Italic</string>
+    <string name="editor_strike">Strikethrough</string>
+    <string name="editor_heading">Heading</string>
+    <string name="editor_bullet_list">Bullet list</string>
+    <string name="editor_ordered_list">Numbered list</string>
+    <string name="editor_task_list">Task list</string>
+    <string name="editor_code">Code</string>
+    <string name="editor_link">Link</string>
+    <string name="editor_link_url">URL</string>
+    <string name="editor_link_insert">Insert</string>
+    <string name="editor_markdown_mode">Edit as Markdown</string>
+    <string name="editor_rich_mode">Back to formatted text</string>
+    <string name="editor_markdown_hint">Editing the note Markdown</string>
+    <string name="editor_raw_notice">This note has images, tables or other content the formatted editor cannot show, so it opens as Markdown.</string>
+    <string name="editor_task">Task</string>
+    <string name="editor_task_done">Done</string>
+    <string name="editor_task_pending">Pending</string>
 
     <string name="categories_title">Categories</string>
     <string name="categories_empty">No categories yet.</string>
+    <string name="categories_hint">Rename, recolor or delete your categories. Deleting one removes it from its notes; the notes are kept.</string>
     <string name="categories_new">New category</string>
     <string name="categories_edit">Edit category</string>
     <string name="categories_name">Name</string>
@@ -72,14 +92,20 @@
     </plurals>
 
     <string name="trash_title">Trash</string>
-    <string name="trash_hint">Notes are deleted forever after 30 days.</string>
+    <string name="trash_hint">Notes stay here for 30 days, then they are deleted for good.</string>
     <string name="trash_empty">The trash is empty.</string>
-    <string name="trash_empty_action">Empty</string>
+    <string name="trash_empty_action">Empty trash</string>
     <string name="trash_restore">Restore</string>
     <string name="trash_delete_forever">Delete forever</string>
     <string name="trash_delete_title">Delete forever?</string>
     <string name="trash_empty_title">Empty the trash?</string>
     <string name="trash_delete_message">This cannot be undone.</string>
+    <string name="trash_deleted_at">Deleted %1$s</string>
+    <string name="trash_purge_today">Deleted for good today</string>
+    <plurals name="trash_purge_in">
+        <item quantity="one">Deleted for good in %d day</item>
+        <item quantity="other">Deleted for good in %d days</item>
+    </plurals>
 
     <string name="settings_title">Settings</string>
     <string name="settings_account">Account</string>

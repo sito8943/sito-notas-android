@@ -4,19 +4,25 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /**
- * Paleta semantica de la app, portada de `foundations/colors.ts` y
- * `theme/constants.ts` (THEME_COLOR). Los nombres son intencionadamente
- * semanticos, no de Material: `textStrong`, no `onSurface`.
+ * Paleta semantica de la app, portada de los tokens de la web
+ * (`apps/notes/src/styles/global.css`, la misma paleta que Sito Wallet).
+ * Los nombres son semanticos, no de Material: `textStrong`, no `onSurface`.
  *
- * Todo gira alrededor del azul de marca `#041E42`, que es el
- * `--color-primary` de `apps/notes/src/styles/global.css` (mismo que el wallet). De ese tono
- * (H 215) salen tambien `accent` y los azules del tema oscuro, subiendo la
- * luminosidad hasta que contrastan sobre su fondo.
+ * Equivalencias con la web:
+ * - `background` = `--color-base` (pagina), `surface` = `--color-base-light`
+ *   (tarjetas, barra inferior), `surfaceRecessed` = `--color-base-dark`
+ *   (bloques de codigo, fondos hundidos).
+ * - `primary` = `--color-primary`: relleno de marca (botones, pestaña activa).
+ * - `accent` = `--color-text-primary`: la marca usada como texto o icono sobre
+ *   la pagina (enlaces, iconos activos, foco). En oscuro el relleno es
+ *   demasiado oscuro para leerse sobre el fondo, por eso son dos tokens.
+ * - `textInverted` = `--color-on-brand`, texto sobre `primary`.
  */
 @Immutable
 data class NotesColors(
     val background: Color,
     val surface: Color,
+    val surfaceRecessed: Color,
     val border: Color,
     val textStrong: Color,
     val textMuted: Color,
@@ -31,40 +37,37 @@ data class NotesColors(
 )
 
 val lightColors = NotesColors(
-    background = Color(0xFFF5F8FC),
+    background = Color(0xFFF2F2F2),
     surface = Color(0xFFFFFFFF),
-    border = Color(0xFFD6E0EB),
-    textStrong = Color(0xFF041E42),
-    textMuted = Color(0xFF4F627D),
-    textSubtle = Color(0xFF74839A),
+    surfaceRecessed = Color(0xFFE6E6E6),
+    border = Color(0xFFCCCCCC),
+    textStrong = Color(0xFF0D0D0D),
+    textMuted = Color(0xFF4D4D4D),
+    // La web no tiene un tercer nivel; este queda entre muted y el borde y
+    // sigue pasando AA (5,7:1 sobre blanco) para fechas y metadatos.
+    textSubtle = Color(0xFF666666),
     textInverted = Color(0xFFFFFFFF),
-    positive = Color(0xFF2E7D32),
-    negative = Color(0xFFC62828),
-    warning = Color(0xFFE65100),
+    positive = Color(0xFF1D9A5C),
+    negative = Color(0xFFC14444),
+    warning = Color(0xFFFFA500),
     primary = Color(0xFF041E42),
-    // El azul de marca a tono 40. `primary` es casi negro y no sirve para
-    // marcar lo seleccionado: una pestaña activa en #041E42 no se distingue
-    // del texto. Este contrasta 7,2:1 sobre blanco y sigue siendo el mismo
-    // tono, H 215.
-    accent = Color(0xFF0F53B3),
-    // rgba(4, 30, 66, 0.4)
-    overlay = Color(0x66041E42),
+    accent = Color(0xFF041E42),
+    overlay = Color(0x66000000),
 )
 
 val darkColors = NotesColors(
-    background = Color(0xFF020B16),
-    surface = Color(0xFF061A33),
-    border = Color(0xFF163B63),
-    textStrong = Color(0xFFF5F8FC),
-    textMuted = Color(0xFFC1D0E0),
-    textSubtle = Color(0xFF90A5BF),
-    textInverted = Color(0xFFFFFFFF),
-    positive = Color(0xFF4CAF50),
-    negative = Color(0xFFEF5350),
-    warning = Color(0xFFFF6B35),
-    primary = Color(0xFF3B82F6),
-    // El mismo tono subido a 65 de luminosidad: 6,0:1 sobre `surface`.
-    accent = Color(0xFF5598F6),
-    // rgba(0, 0, 0, 0.6)
+    background = Color(0xFF0F141C),
+    surface = Color(0xFF1A212C),
+    surfaceRecessed = Color(0xFF0B0F16),
+    border = Color(0xFF343D4B),
+    textStrong = Color(0xFFC9CED8),
+    textMuted = Color(0xFF8A92A0),
+    textSubtle = Color(0xFF8A92A0),
+    textInverted = Color(0xFFF1F5FB),
+    positive = Color(0xFF1F8A55),
+    negative = Color(0xFFC24A4A),
+    warning = Color(0xFFE8A33A),
+    primary = Color(0xFF1F4F99),
+    accent = Color(0xFF8AB4F8),
     overlay = Color(0x99000000),
 )
