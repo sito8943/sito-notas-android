@@ -1,0 +1,83 @@
+# SitoNotas — Project context
+
+Native Android port of the Sito Notes web app (`apps/notes`), offline-first.
+Architecture, versions, auth and design system copied from `../SitoWallet`
+(Wallet* components renamed Notes*).
+
+## Identity and config
+
+| Item | Value |
+|---|---|
+| Package / namespace | `dev.sito8943.sitonotas` |
+| applicationId | `com.sito8943.notas` (debug: `.debug` suffix) |
+| Version | 0.1.0 (code 1), minSdk 26, target 36, compile 37 |
+| BuildConfig | `API_BASE_URL` (notes API), `AUTH_BASE_URL` (sito-auth) |
+| Database | Room `sito-notas.db`, version 1, schema in `app/schemas/` |
+
+## Code map (`app/src/main/java/dev/sito8943/sitonotas/`)
+
+| Path | Responsibility |
+|---|---|
+| `SitoNotasApplication`, `MainActivity` | Restore session, start sync; theme/locale root; foreground → `requestSync()` |
+| `core/di/AppContainer` | Manual DI. Two `RestClient`s (auth + notes) sharing one `SessionRepository` |
+| `core/auth`, `core/network` | Copied from SitoWallet: encrypted session, single-flight refresh, refresh-on-401 |
+| `core/data` | Room: `notes`, `categories`, `note_categories`; DAOs; `VersionClock` |
+| `core/sync` | `NotesApi`, `SyncPush`, `SyncPull`, `SyncEngine`, `SyncCoordinator` |
+| `core/settings` | DataStore: theme, language, pull cursor per user, last sync |
+| `core/model` | Search and category-name rules ported from the web |
+| `feature/auth` | Sign in, forgot password, continue without account (no sign-up) |
+| `feature/notes` | List (search, favorites/category filters), editor with autosave, Markdown preview |
+| `feature/categories`, `feature/trash`, `feature/settings` | Their screens and ViewModels |
+| `ui/` | Design system copied from SitoWallet |
+| `navigation/` | Single NavHost with a bottom bar on the 4 tabs |
+
+## Sync design
+
+Room is the source of truth for the UI. Each row has a local `id`, `remote_id`,
+`dirty`, `purged`, `local_version`; notes also `deleted_at` and `remote_deleted`.
+
+A row is **pending** when: `remote_id IS NULL` (create), `dirty` (PATCH),
+`purged` (permanent delete), or for notes `(deleted_at IS NOT NULL) != remote_deleted`
+(trash/restore). `SyncDao.observePendingStats()` emits count + max version.
+
+`SyncEngine.sync(userId)` runs, in order:
+
+1. **Pull categories** (full, `GET /categories` paged). Upsert by `remoteId`;
+   local offline categories with the same name key are *linked* instead of
+   re-created (server rejects duplicate names with 409); categories missing on
+   the server and not pending are deleted locally.
+2. **Push categories**: `POST /categories/batch` (ids in request order →
+   `remoteId`), `PATCH /categories/batch`, `DELETE /categories/permanent`
+   (categories are deleted forever, like the web).
+3. **Push notes**: `POST /notes/batch` (category ids translated to remote ids;
+   `favorite` is not in the create request, so a favorite stays dirty and is
+   PATCHed in the same run), `PATCH /notes/batch`, `DELETE /notes` (trash),
+   `PATCH /notes/restore`, `DELETE /notes/permanent` (after trash).
+   A 404 on a batch PATCH retries row by row; a row the server no longer has is
+   re-created (active) or dropped (trashed).
+4. **Pull notes** incrementally: `GET /notes?softDeleteScope=ALL&sort=id&order=ASC
+   &filters=updatedAt>=<cursor>` paged; first time without filter (full
+   download). Upsert by `remoteId`. If a note references an unknown category,
+   categories are pulled first. Cursor = highest server `updatedAt` seen
+   (server clock, not device clock), stored per user.
+
+Conflict rule: on pull, a pending local row is skipped (local wins, it gets
+pushed); otherwise the server overwrites it. `dirty` is cleared only if
+`local_version` did not change while the request was in flight.
+
+`SyncCoordinator` triggers: pending changes (debounce 1.5 s, only when count > 0),
+sign-in, app foreground (`MainActivity.onStart`), manual "Sincronizar ahora".
+A mutex serializes runs. Failures are shown (offline vs server) and retried on
+the next trigger. No WorkManager.
+
+## Known gaps
+
+- Server hard deletes (permanent delete from the web) are not visible to an
+  incremental pull; local rows remain until they are edited (then 404 →
+  re-created) . Synced trash older than 30 days is dropped locally to mirror the
+  server purge job.
+- `PATCH /notes/reorder` does not bump `updatedAt`, so manual order changed on
+  the web only arrives with a full pull. No reorder UI in v1.
+- Switching accounts on one device: local rows keep the previous account's
+  `remoteId`s; a PATCH 404 re-creates them in the new account.
+- Shares, public links, images, view configs: out of scope.
