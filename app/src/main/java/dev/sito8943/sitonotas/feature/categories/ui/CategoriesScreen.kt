@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,10 +50,16 @@ fun CategoriesScreen(viewModel: CategoriesViewModel) {
     val colors = NotesTheme.colors
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Page(title = stringResource(R.string.categories_title)) {
+        Page(
+            title = stringResource(R.string.categories_title),
+            description = stringResource(R.string.categories_hint),
+        ) {
             when {
                 state.loading -> Unit
-                state.categories.isEmpty() -> EmptyState(stringResource(R.string.categories_empty))
+                state.categories.isEmpty() -> EmptyState(
+                    text = stringResource(R.string.categories_empty),
+                    icon = R.drawable.fa_tags,
+                )
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = spacing(4), end = spacing(4), bottom = spacing(24)),
@@ -68,27 +71,33 @@ fun CategoriesScreen(viewModel: CategoriesViewModel) {
                             onClick = { viewModel.startEdit(category) },
                             actions = listOf(
                                 EntityAction(
-                                    icon = Icons.Outlined.Edit,
+                                    icon = R.drawable.fa_pen,
                                     contentDescription = stringResource(R.string.common_edit),
                                     onClick = { viewModel.startEdit(category) },
                                 ),
                                 EntityAction(
-                                    icon = Icons.Outlined.Delete,
+                                    icon = R.drawable.fa_trash,
                                     contentDescription = stringResource(R.string.common_delete),
                                     onClick = { viewModel.askDelete(category) },
+                                    tint = colors.negative,
                                 ),
                             ),
                         ) {
-                            ColorDot(category.color, size = 14)
+                            ColorDot(category.color, size = 12)
                             Column(modifier = Modifier.weight(1f)) {
                                 NotesText(category.name, style = NotesTheme.typography.bodyStrong, maxLines = 1)
-                                category.description?.let {
-                                    NotesText(it, color = colors.textMuted, maxLines = 2)
+                                category.description?.takeIf { it.isNotBlank() }?.let {
+                                    NotesText(
+                                        it,
+                                        style = NotesTheme.typography.small,
+                                        color = colors.textMuted,
+                                        maxLines = 2,
+                                    )
                                 }
                                 NotesText(
                                     pluralStringResource(R.plurals.categories_uses, uses, uses),
                                     style = NotesTheme.typography.caption,
-                                    color = colors.textSubtle,
+                                    color = colors.textMuted,
                                 )
                             }
                         }
@@ -102,7 +111,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel) {
             contentDescription = stringResource(R.string.categories_new),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(spacing(5)),
+                .padding(spacing(4)),
         )
     }
 

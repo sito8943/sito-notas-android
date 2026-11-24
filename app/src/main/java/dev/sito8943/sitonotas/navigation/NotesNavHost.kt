@@ -6,12 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.StickyNote2
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
+import androidx.annotation.DrawableRes
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -21,7 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -49,16 +44,18 @@ import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
 import dev.sito8943.sitonotas.feature.settings.ui.SettingsScreen
 import dev.sito8943.sitonotas.feature.trash.TrashViewModel
 import dev.sito8943.sitonotas.feature.trash.ui.TrashScreen
+import dev.sito8943.sitonotas.ui.elements.FaIcon
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 import kotlin.reflect.KClass
 
-private data class Tab(val route: Any, val type: KClass<*>, val icon: ImageVector, val label: Int)
+private data class Tab(val route: Any, val type: KClass<*>, @param:DrawableRes val icon: Int, val label: Int)
 
+// Mismos iconos que `AppBottomNavigation` / `AppSidebar` de la web.
 private val tabs = listOf(
-    Tab(NotesRoute, NotesRoute::class, Icons.AutoMirrored.Outlined.StickyNote2, R.string.tab_notes),
-    Tab(CategoriesRoute, CategoriesRoute::class, Icons.AutoMirrored.Outlined.Label, R.string.tab_categories),
-    Tab(TrashRoute, TrashRoute::class, Icons.Outlined.Delete, R.string.tab_trash),
-    Tab(SettingsRoute, SettingsRoute::class, Icons.Outlined.Settings, R.string.tab_settings),
+    Tab(NotesRoute, NotesRoute::class, R.drawable.fa_note_sticky, R.string.tab_notes),
+    Tab(CategoriesRoute, CategoriesRoute::class, R.drawable.fa_tag, R.string.tab_categories),
+    Tab(TrashRoute, TrashRoute::class, R.drawable.fa_trash, R.string.tab_trash),
+    Tab(SettingsRoute, SettingsRoute::class, R.drawable.fa_gear, R.string.tab_settings),
 )
 
 @Composable
@@ -86,26 +83,34 @@ fun NotesNavHost(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
             if (showTabs) {
-                NavigationBar(containerColor = NotesTheme.colors.surface) {
+                // Barra de la web (`bottom-nav`: superficie elevada, icono activo
+                // en la marca) con las etiquetas e indicador de Android.
+                NavigationBar(containerColor = NotesTheme.colors.surface, tonalElevation = 0.dp) {
                     tabs.forEach { tab ->
                         val selected = destination?.hierarchy?.any { it.hasRoute(tab.type) } == true
                         NavigationBarItem(
                             selected = selected,
-                            onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                            onClick = { navController.navigateToTab(tab.route) },
+                            icon = {
+                                FaIcon(
+                                    tab.icon,
+                                    contentDescription = null,
+                                    tint = if (selected) NotesTheme.colors.accent else NotesTheme.colors.textMuted,
+                                    size = 20.dp,
+                                )
                             },
-                            icon = { Icon(tab.icon, contentDescription = null) },
-                            label = { androidx.compose.material3.Text(stringResource(tab.label)) },
+                            label = {
+                                androidx.compose.material3.Text(
+                                    stringResource(tab.label),
+                                    style = NotesTheme.typography.caption,
+                                )
+                            },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = NotesTheme.colors.accent,
                                 selectedTextColor = NotesTheme.colors.accent,
                                 unselectedIconColor = NotesTheme.colors.textMuted,
                                 unselectedTextColor = NotesTheme.colors.textMuted,
-                                indicatorColor = NotesTheme.colors.background,
+                                indicatorColor = NotesTheme.colors.accent.copy(alpha = 0.12f),
                             ),
                         )
                     }
@@ -146,6 +151,7 @@ fun NotesNavHost(
                         viewModel = viewModel,
                         onOpenNote = { navController.navigate(NoteEditorRoute(it)) },
                         onNewNote = { navController.navigate(NoteEditorRoute()) },
+                        onManageCategories = { navController.navigateToTab(CategoriesRoute) },
                     )
                 }
                 composable<NoteEditorRoute> { entry ->
@@ -169,6 +175,15 @@ fun NotesNavHost(
                 }
             }
         }
+    }
+}
+
+/** Navegacion entre pestañas: una sola copia de cada una, con su estado guardado. */
+private fun NavHostController.navigateToTab(route: Any) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 

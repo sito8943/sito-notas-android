@@ -1,5 +1,6 @@
 package dev.sito8943.sitonotas.feature.settings.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,10 +28,12 @@ import dev.sito8943.sitonotas.core.settings.AppLanguage
 import dev.sito8943.sitonotas.core.sync.SyncStatus
 import dev.sito8943.sitonotas.feature.settings.SettingsUiState
 import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
+import dev.sito8943.sitonotas.ui.elements.ButtonColor
 import dev.sito8943.sitonotas.ui.elements.ButtonVariant
 import dev.sito8943.sitonotas.ui.elements.NotesButton
 import dev.sito8943.sitonotas.ui.elements.NotesText
 import dev.sito8943.sitonotas.ui.elements.formatDateTime
+import dev.sito8943.sitonotas.ui.foundations.BorderWidth
 import dev.sito8943.sitonotas.ui.foundations.Radius
 import dev.sito8943.sitonotas.ui.foundations.spacing
 import dev.sito8943.sitonotas.ui.patterns.NotesConfirmationDialog
@@ -49,7 +52,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = spacing(4))
                 .padding(bottom = spacing(6)),
-            verticalArrangement = Arrangement.spacedBy(spacing(4)),
+            verticalArrangement = Arrangement.spacedBy(spacing(6)),
         ) {
             Section(stringResource(R.string.settings_account)) {
                 if (state.accountEmail == null) {
@@ -57,15 +60,15 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
                     NotesButton(
                         text = stringResource(R.string.auth_sign_in),
                         onClick = onSignIn,
-                        modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
                     NotesText(stringResource(R.string.settings_signed_in_as, state.accountEmail!!))
                     NotesButton(
                         text = stringResource(R.string.settings_sign_out),
                         onClick = { confirmSignOut = true },
-                        modifier = Modifier.fillMaxWidth(),
                         variant = ButtonVariant.OUTLINED,
+                        color = ButtonColor.PRIMARY,
+                        icon = R.drawable.fa_arrow_right_from_bracket,
                     )
                 }
             }
@@ -92,7 +95,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
                     NotesButton(
                         text = stringResource(R.string.settings_sync_now),
                         onClick = viewModel::syncNow,
-                        modifier = Modifier.fillMaxWidth(),
+                        icon = R.drawable.fa_rotate,
                         loading = state.syncStatus is SyncStatus.Syncing,
                     )
                 }
@@ -165,14 +168,23 @@ private fun syncStatusText(state: SettingsUiState): String = when (val status = 
     }
 }
 
+/**
+ * Seccion en tarjeta, como las de la pagina de ajustes de la web
+ * (`rounded-2xl border bg-base-light p-4`, titulo `text-xl` en Poppins).
+ */
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Surface(shape = Radius.mdShape, color = NotesTheme.colors.surface, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        shape = Radius.xlShape,
+        color = NotesTheme.colors.surface,
+        border = BorderStroke(BorderWidth.thin, NotesTheme.colors.border),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column(
             modifier = Modifier.padding(spacing(4)),
-            verticalArrangement = Arrangement.spacedBy(spacing(2)),
+            verticalArrangement = Arrangement.spacedBy(spacing(3)),
         ) {
-            NotesText(title.uppercase(), style = NotesTheme.typography.label, color = NotesTheme.colors.textMuted)
+            NotesText(title, style = NotesTheme.typography.title)
             content()
         }
     }

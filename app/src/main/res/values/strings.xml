@@ -39,9 +39,11 @@
 
     <!-- Notas -->
     <string name="notes_title">Notas</string>
-    <string name="notes_search">Buscar</string>
+    <string name="notes_search">Buscar en títulos y contenido</string>
     <string name="notes_search_clear">Borrar búsqueda</string>
     <string name="notes_filter_favorites">Favoritas</string>
+    <string name="notes_filter_all">Todas</string>
+    <string name="notes_manage_categories">Editar categorías</string>
     <string name="notes_new">Nueva nota</string>
     <string name="notes_empty">Aún no hay notas. Pulsa + para escribir la primera.</string>
     <string name="notes_empty_filtered">Ninguna nota coincide con la búsqueda.</string>
@@ -62,10 +64,13 @@
     <string name="editor_categories">Categorías</string>
     <string name="editor_no_categories">Aún no hay categorías. Créalas en la pestaña Categorías.</string>
     <string name="editor_missing">Esta nota ya no existe.</string>
+    <string name="editor_add_category">Categoría</string>
+    <string name="editor_remove_category">Quitar %1$s</string>
 
     <!-- Categorías -->
     <string name="categories_title">Categorías</string>
     <string name="categories_empty">Aún no hay categorías.</string>
+    <string name="categories_hint">Renombra, cambia el color o borra tus categorías. Al borrar una se quita de sus notas; las notas no se borran.</string>
     <string name="categories_new">Nueva categoría</string>
     <string name="categories_edit">Editar categoría</string>
     <string name="categories_name">Nombre</string>
@@ -84,14 +89,21 @@
 
     <!-- Papelera -->
     <string name="trash_title">Papelera</string>
-    <string name="trash_hint">Las notas se eliminan para siempre a los 30 días.</string>
+    <string name="trash_hint">Las notas se quedan aquí 30 días; después se borran para siempre.</string>
     <string name="trash_empty">La papelera está vacía.</string>
-    <string name="trash_empty_action">Vaciar</string>
+    <string name="trash_empty_action">Vaciar papelera</string>
     <string name="trash_restore">Restaurar</string>
     <string name="trash_delete_forever">Eliminar para siempre</string>
     <string name="trash_delete_title">¿Eliminar para siempre?</string>
     <string name="trash_empty_title">¿Vaciar la papelera?</string>
     <string name="trash_delete_message">No se puede deshacer.</string>
+    <string name="trash_deleted_at">Borrada %1$s</string>
+    <string name="trash_purge_today">Se borra hoy</string>
+    <plurals name="trash_purge_in">
+        <item quantity="one">Se borra en %d día</item>
+        <item quantity="many">Se borra en %d días</item>
+        <item quantity="other">Se borra en %d días</item>
+    </plurals>
 
     <!-- Ajustes -->
     <string name="settings_title">Ajustes</string>

@@ -3,9 +3,10 @@ package dev.sito8943.sitonotas.feature.notes.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,15 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.R
@@ -48,7 +43,8 @@ import dev.sito8943.sitonotas.feature.notes.NoteEditorViewModel
 import dev.sito8943.sitonotas.ui.elements.ButtonVariant
 import dev.sito8943.sitonotas.ui.elements.CategoryChip
 import dev.sito8943.sitonotas.ui.elements.ColorDot
-import dev.sito8943.sitonotas.ui.elements.IconButtonSize
+import dev.sito8943.sitonotas.ui.elements.DashedChip
+import dev.sito8943.sitonotas.ui.elements.FaIcon
 import dev.sito8943.sitonotas.ui.elements.NotesButton
 import dev.sito8943.sitonotas.ui.elements.NotesIconButton
 import dev.sito8943.sitonotas.ui.elements.NotesText
@@ -78,56 +74,20 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
             .safeDrawingPadding()
             .imePadding(),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing(1), vertical = spacing(1)),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NotesIconButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.common_back),
-                onClick = leave,
-                tint = colors.textStrong,
-                size = IconButtonSize.LG,
-            )
-            Box(Modifier.weight(1f))
-            if (!state.missing) {
-                NotesIconButton(
-                    icon = if (state.preview) Icons.Outlined.Edit else Icons.Outlined.Visibility,
-                    contentDescription = stringResource(
-                        if (state.preview) R.string.editor_edit else R.string.editor_preview,
-                    ),
-                    onClick = viewModel::togglePreview,
-                    size = IconButtonSize.LG,
-                )
-                NotesIconButton(
-                    icon = if (state.favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = stringResource(
-                        if (state.favorite) R.string.note_unfavorite else R.string.note_favorite,
-                    ),
-                    onClick = viewModel::toggleFavorite,
-                    tint = if (state.favorite) colors.warning else colors.textMuted,
-                    size = IconButtonSize.LG,
-                )
-                NotesIconButton(
-                    icon = Icons.AutoMirrored.Outlined.Label,
-                    contentDescription = stringResource(R.string.editor_categories),
-                    onClick = { pickingCategories = true },
-                    size = IconButtonSize.LG,
-                )
-                NotesIconButton(
-                    icon = Icons.Outlined.Delete,
-                    contentDescription = stringResource(R.string.note_trash),
-                    onClick = { confirmTrash = true },
-                    size = IconButtonSize.LG,
-                )
-            }
-        }
+        EditorHeader(
+            title = state.title,
+            showActions = !state.loading && !state.missing,
+            preview = state.preview,
+            favorite = state.favorite,
+            onBack = leave,
+            onTogglePreview = viewModel::togglePreview,
+            onToggleFavorite = viewModel::toggleFavorite,
+            onTrash = { confirmTrash = true },
+        )
 
         when {
             state.loading -> Unit
-            state.missing -> EmptyState(stringResource(R.string.editor_missing))
+            state.missing -> EmptyState(stringResource(R.string.editor_missing), icon = R.drawable.fa_note_sticky_regular)
             else -> EditorBody(
                 title = state.title,
                 content = state.content,
@@ -135,7 +95,8 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
                 categories = state.selectedCategories,
                 onTitleChange = viewModel::onTitleChange,
                 onContentChange = viewModel::onContentChange,
-                onCategoriesClick = { pickingCategories = true },
+                onAddCategory = { pickingCategories = true },
+                onRemoveCategory = { id -> viewModel.setCategories(state.categoryIds - id) },
             )
         }
     }
@@ -166,6 +127,83 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     )
 }
 
+/**
+ * Barra superior de la nota, como `NoteHeader` de la web: volver, miga
+ * "Notas › titulo" y las acciones, con una linea debajo.
+ */
+@Composable
+private fun EditorHeader(
+    title: String,
+    showActions: Boolean,
+    preview: Boolean,
+    favorite: Boolean,
+    onBack: () -> Unit,
+    onTogglePreview: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onTrash: () -> Unit,
+) {
+    val colors = NotesTheme.colors
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = spacing(1)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            NotesIconButton(
+                icon = R.drawable.fa_arrow_left,
+                contentDescription = stringResource(R.string.common_back),
+                onClick = onBack,
+                tint = colors.textMuted,
+            )
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(spacing(2)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NotesText(
+                    stringResource(R.string.notes_title),
+                    style = NotesTheme.typography.small,
+                    color = colors.textMuted,
+                    maxLines = 1,
+                )
+                FaIcon(R.drawable.fa_chevron_right, contentDescription = null, size = 10.dp)
+                NotesText(
+                    title.ifBlank { stringResource(R.string.note_untitled) },
+                    style = NotesTheme.typography.small,
+                    color = colors.textStrong,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+            if (showActions) {
+                NotesIconButton(
+                    icon = if (preview) R.drawable.fa_pen else R.drawable.fa_eye,
+                    contentDescription = stringResource(
+                        if (preview) R.string.editor_edit else R.string.editor_preview,
+                    ),
+                    onClick = onTogglePreview,
+                )
+                NotesIconButton(
+                    icon = if (favorite) R.drawable.fa_heart else R.drawable.fa_heart_regular,
+                    contentDescription = stringResource(
+                        if (favorite) R.string.note_unfavorite else R.string.note_favorite,
+                    ),
+                    onClick = onToggleFavorite,
+                    tint = if (favorite) colors.accent else colors.textMuted,
+                )
+                NotesIconButton(
+                    icon = R.drawable.fa_trash,
+                    contentDescription = stringResource(R.string.note_trash),
+                    onClick = onTrash,
+                )
+            }
+        }
+        HorizontalDivider(color = colors.border)
+    }
+}
+
 @Composable
 private fun EditorBody(
     title: String,
@@ -174,42 +212,61 @@ private fun EditorBody(
     categories: List<Category>,
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
-    onCategoriesClick: () -> Unit,
+    onAddCategory: () -> Unit,
+    onRemoveCategory: (Long) -> Unit,
 ) {
     val colors = NotesTheme.colors
     val typography = NotesTheme.typography
+    val titleStyle = typography.display.copy(fontSize = 30.sp, lineHeight = 38.sp, color = colors.textStrong)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing(5)),
-        verticalArrangement = Arrangement.spacedBy(spacing(3)),
+            .padding(horizontal = spacing(4))
+            .padding(top = spacing(6), bottom = spacing(16)),
+        verticalArrangement = Arrangement.spacedBy(spacing(6)),
     ) {
-        if (preview) {
-            NotesText(
-                text = title.ifBlank { stringResource(R.string.note_untitled) },
-                style = typography.title.copy(fontSize = 24.sp),
-                color = if (title.isBlank()) colors.textMuted else colors.textStrong,
-            )
-        } else {
-            PlainField(
-                value = title,
-                onValueChange = onTitleChange,
-                placeholder = stringResource(R.string.editor_title_placeholder),
-                style = typography.title.copy(fontSize = 24.sp, color = colors.textStrong),
-                singleLine = true,
-            )
-        }
+        Column(verticalArrangement = Arrangement.spacedBy(spacing(3))) {
+            if (preview) {
+                NotesText(
+                    text = title.ifBlank { stringResource(R.string.note_untitled) },
+                    style = titleStyle,
+                    color = if (title.isBlank()) colors.textMuted else colors.textStrong,
+                )
+            } else {
+                PlainField(
+                    value = title,
+                    onValueChange = onTitleChange,
+                    placeholder = stringResource(R.string.editor_title_placeholder),
+                    style = titleStyle,
+                    singleLine = true,
+                )
+            }
 
-        if (categories.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .clickable(onClick = onCategoriesClick),
-                horizontalArrangement = Arrangement.spacedBy(spacing(2)),
+            // Como `NoteTags`: chips con X para quitar y el chip discontinuo
+            // para añadir. En vista previa solo se leen.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                categories.forEach { CategoryChip(it.name, it.color) }
+                categories.forEach { category ->
+                    CategoryChip(
+                        name = category.name,
+                        color = category.color,
+                        onRemove = if (preview) null else { { onRemoveCategory(category.id) } },
+                        removeLabel = stringResource(R.string.editor_remove_category, category.name),
+                    )
+                }
+                if (!preview) {
+                    DashedChip(
+                        icon = R.drawable.fa_plus,
+                        label = stringResource(R.string.editor_add_category),
+                        contentDescription = stringResource(R.string.editor_categories),
+                        onClick = onAddCategory,
+                    )
+                }
             }
         }
 
@@ -217,16 +274,15 @@ private fun EditorBody(
             if (content.isBlank()) {
                 NotesText(stringResource(R.string.editor_preview_empty), color = colors.textMuted)
             } else {
-                MarkdownPreview(content, Modifier.padding(bottom = spacing(10)))
+                MarkdownPreview(content)
             }
         } else {
             PlainField(
                 value = content,
                 onValueChange = onContentChange,
                 placeholder = stringResource(R.string.editor_content_placeholder),
-                style = typography.body.copy(color = colors.textStrong, lineHeight = 24.sp),
+                style = typography.body.copy(color = colors.textStrong, lineHeight = 26.sp),
                 singleLine = false,
-                modifier = Modifier.padding(bottom = spacing(10)),
             )
         }
     }

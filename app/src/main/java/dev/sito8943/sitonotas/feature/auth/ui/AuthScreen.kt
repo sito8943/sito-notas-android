@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import dev.sito8943.sitonotas.R
 import dev.sito8943.sitonotas.feature.auth.AuthUiState
+import dev.sito8943.sitonotas.ui.elements.ButtonColor
 import dev.sito8943.sitonotas.ui.elements.ButtonVariant
 import dev.sito8943.sitonotas.ui.elements.NotesButton
 import dev.sito8943.sitonotas.ui.elements.NotesPasswordField
@@ -67,13 +68,13 @@ fun AuthScreen(
             Image(
                 painter = painterResource(R.drawable.logo_glyph),
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(colors.primary),
+                colorFilter = ColorFilter.tint(colors.accent),
                 modifier = Modifier.size(spacing(16)),
             )
             NotesText(
                 text = stringResource(R.string.brand_name),
                 style = NotesTheme.typography.display,
-                color = colors.primary,
+                color = colors.accent,
             )
         }
 
@@ -143,6 +144,7 @@ fun AuthScreen(
             onClick = onForgotPassword,
             modifier = Modifier.fillMaxWidth(),
             variant = ButtonVariant.TEXT,
+            color = ButtonColor.PRIMARY,
             enabled = !state.loading,
         )
 

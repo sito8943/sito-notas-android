@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -35,15 +37,20 @@ import dev.sito8943.sitonotas.ui.foundations.Radius
 import dev.sito8943.sitonotas.ui.foundations.spacing
 import dev.sito8943.sitonotas.ui.theme.NotesColors
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
+import dev.sito8943.sitonotas.ui.theme.Poppins
 
-/** Vista previa del Markdown de una nota. Solo lectura. */
+/**
+ * Vista previa del Markdown de una nota. Solo lectura. Estilos de
+ * `.note-editor-content` en la web: titulos en Poppins, codigo sobre la
+ * superficie hundida, citas con barra de 4dp, enlaces en la marca.
+ */
 @Composable
 fun MarkdownPreview(source: String, modifier: Modifier = Modifier) {
     val blocks = remember(source) { MarkdownBlocks.parse(source) }
     val colors = NotesTheme.colors
-    val body = NotesTheme.typography.body.copy(color = colors.textStrong, lineHeight = 24.sp)
+    val body = NotesTheme.typography.body.copy(color = colors.textStrong, lineHeight = 26.sp)
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing(2))) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing(3))) {
         blocks.forEach { block ->
             when (block) {
                 is MdBlock.Heading -> InlineText(
@@ -51,6 +58,7 @@ fun MarkdownPreview(source: String, modifier: Modifier = Modifier) {
                     body.copy(
                         fontSize = HEADING_SIZES.getOrElse(block.level - 1) { 16 }.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = if (block.level <= 3) Poppins else null,
                         lineHeight = (HEADING_SIZES.getOrElse(block.level - 1) { 16 } + 6).sp,
                     ),
                     colors,
@@ -65,18 +73,18 @@ fun MarkdownPreview(source: String, modifier: Modifier = Modifier) {
                     if (block.checked) body.copy(color = colors.textMuted, textDecoration = TextDecoration.LineThrough) else body,
                     colors,
                 )
-                is MdBlock.Quote -> Row {
+                is MdBlock.Quote -> Row(Modifier.height(IntrinsicSize.Min)) {
                     Box(
                         Modifier
                             .width(spacing(1))
-                            .height(spacing(6))
+                            .fillMaxHeight()
                             .background(colors.border),
                     )
                     InlineText(
                         block.text,
                         body.copy(color = colors.textMuted, fontStyle = FontStyle.Italic),
                         colors,
-                        Modifier.padding(start = spacing(3)),
+                        Modifier.padding(start = spacing(4)),
                     )
                 }
                 is MdBlock.Code -> Text(
@@ -84,8 +92,8 @@ fun MarkdownPreview(source: String, modifier: Modifier = Modifier) {
                     style = body.copy(fontFamily = FontFamily.Monospace, fontSize = 14.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(colors.background, Radius.smShape)
-                        .padding(spacing(3)),
+                        .background(colors.surfaceRecessed, Radius.lgShape)
+                        .padding(spacing(4)),
                 )
                 MdBlock.Rule -> HorizontalDivider(color = colors.border)
             }
@@ -113,7 +121,7 @@ private fun inline(text: String, colors: NotesColors): AnnotatedString = buildAn
             fontWeight = if (span.bold) FontWeight.Bold else null,
             fontStyle = if (span.italic) FontStyle.Italic else null,
             fontFamily = if (span.code) FontFamily.Monospace else null,
-            background = if (span.code) colors.border.copy(alpha = 0.5f) else Color.Unspecified,
+            background = if (span.code) colors.surfaceRecessed else Color.Unspecified,
             textDecoration = if (span.strike) TextDecoration.LineThrough else null,
         )
         if (span.link != null && span.link.startsWith("http")) {

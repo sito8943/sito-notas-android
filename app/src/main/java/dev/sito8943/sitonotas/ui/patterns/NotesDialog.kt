@@ -32,7 +32,7 @@ fun NotesDialog(
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        shape = Radius.lgShape,
+        shape = Radius.xlShape,
         containerColor = NotesTheme.colors.surface,
         title = { AppLocaleProvider(language, title) },
         text = text?.let { { AppLocaleProvider(language, it) } },

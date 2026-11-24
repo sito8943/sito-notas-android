@@ -28,7 +28,7 @@ Architecture, versions, auth and design system copied from `../SitoWallet`
 | `feature/auth` | Sign in, forgot password, continue without account (no sign-up) |
 | `feature/notes` | List (search, favorites/category filters), editor with autosave, Markdown preview |
 | `feature/categories`, `feature/trash`, `feature/settings` | Their screens and ViewModels |
-| `ui/` | Design system copied from SitoWallet |
+| `ui/` | Design system: tokens ported from the web (`apps/notes/src/styles/global.css`), Font Awesome icons (`FaIcon`, `res/drawable/fa_*.xml`), Poppins headings |
 | `navigation/` | Single NavHost with a bottom bar on the 4 tabs |
 
 ## Sync design
