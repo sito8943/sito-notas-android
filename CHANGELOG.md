@@ -47,7 +47,8 @@
 - Hard deletes from the web reach the phone (tombstones), incremental
   categories pull, PATCH batches that skip missing ids (`937846f`); full pull
   when tombstones expired (`d0b0852`). Falls back to the current behaviour on
-  servers without these endpoints.
+  servers without these endpoints, including the 500 production returns
+  (`7db174c`).
 - Switching accounts on one phone no longer copies the previous account's
   notes; pending changes ask what to do (`8b3c5e9`).
 
