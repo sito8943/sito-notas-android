@@ -10,8 +10,24 @@ class SearchTextTest {
     @Test
     fun `every word must appear, ignoring case and accents`() {
         assertTrue(SearchText.matches("Canción de cuna", "para dormir", "CANCION dormir"))
-        assertFalse(SearchText.matches("Canción", "para dormir", "cancion comer"))
+        assertFalse(SearchText.matches("Receta", "para dormir", "cancion comer"))
         assertTrue(SearchText.matches("x", "y", "   "))
+    }
+
+    @Test
+    fun `similarity is the dice coefficient of string-similarity`() {
+        assertEquals(0.8, SearchText.similarity("healed", "sealed"), 1e-9)
+        assertEquals(0.5, SearchText.similarity("aaaa", "aa"), 1e-9)
+        assertEquals(1.0, SearchText.similarity("a b", "ab"), 1e-9)
+        assertEquals(0.0, SearchText.similarity("a", "ab"), 1e-9)
+    }
+
+    @Test
+    fun `a title close to the whole query matches despite typos`() {
+        // "cancion" frente a "cancion comer": 0,705 > 0,3, como en la web.
+        assertTrue(SearchText.matches("Canción", "para dormir", "cancion comer"))
+        assertTrue(SearchText.matches("Lista de la compra", "", "lista de la conpra"))
+        assertFalse(SearchText.matches("Lista de la compra", "", "zzz"))
     }
 
     @Test

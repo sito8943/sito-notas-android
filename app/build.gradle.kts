@@ -38,6 +38,13 @@ val releaseApiUrl = buildConfigString("sitonotas.release.apiUrl", "https://api.n
 val releaseAuthUrl = buildConfigString("sitonotas.release.authUrl", "https://api.auth.sito8943.com")
 val debugApiUrl = buildConfigString("sitonotas.debug.apiUrl", "http://10.0.2.2:8083")
 val debugAuthUrl = buildConfigString("sitonotas.debug.authUrl", "http://10.0.2.2:8081")
+// Public note links (`<shareUrl>/<token>`, as the web's VITE_SHARE_URL); empty
+// falls back to the API's own share page `<apiUrl>/s/<token>`. The web app URL
+// is what "Copy link" gives when a note has no public link.
+val releaseShareUrl = buildConfigString("sitonotas.release.shareUrl", "https://share.notes.sito8943.com")
+val debugShareUrl = buildConfigString("sitonotas.debug.shareUrl", "")
+val releaseWebUrl = buildConfigString("sitonotas.release.webUrl", "https://notas.sito8943.com")
+val debugWebUrl = buildConfigString("sitonotas.debug.webUrl", "http://10.0.2.2:5173")
 
 android {
     namespace = "dev.sito8943.sitonotas"
@@ -47,8 +54,8 @@ android {
         applicationId = "com.sito8943.notas"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     buildFeatures {
@@ -74,6 +81,8 @@ android {
             applicationIdSuffix = ".debug"
             buildConfigField("String", "API_BASE_URL", "\"$debugApiUrl\"")
             buildConfigField("String", "AUTH_BASE_URL", "\"$debugAuthUrl\"")
+            buildConfigField("String", "SHARE_BASE_URL", "\"$debugShareUrl\"")
+            buildConfigField("String", "WEB_APP_URL", "\"$debugWebUrl\"")
         }
         release {
             // Null without keystore.properties: the APK comes out unsigned.
@@ -86,6 +95,8 @@ android {
             )
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiUrl\"")
             buildConfigField("String", "AUTH_BASE_URL", "\"$releaseAuthUrl\"")
+            buildConfigField("String", "SHARE_BASE_URL", "\"$releaseShareUrl\"")
+            buildConfigField("String", "WEB_APP_URL", "\"$releaseWebUrl\"")
         }
     }
 

@@ -3,14 +3,11 @@ package dev.sito8943.sitonotas.feature.notes.ui
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,7 +47,9 @@ fun NotesScreen(
     val colors = NotesTheme.colors
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Page(title = stringResource(R.string.notes_title)) {
+        Page(
+            title = stringResource(R.string.notes_title),
+        ) {
             NotesSearchField(
                 value = filters.query,
                 onValueChange = viewModel::onQueryChange,
@@ -74,21 +73,29 @@ fun NotesScreen(
                 ) {
                     // Pestañas excluyentes, como en la web: se pasa de una a
                     // otra apagando el filtro anterior con la API del ViewModel.
+                    // Contadores sobre todas las notas activas, como `CategoryTabs`
+                    // en la web; una pestaña sin notas queda deshabilitada.
                     FilterTab(
                         label = stringResource(R.string.notes_filter_all),
                         selected = !filters.favoritesOnly && filters.categoryId == null,
                         onClick = { viewModel.selectTab(filters, favorites = false, categoryId = null) },
+                        count = state.counts.all,
                     )
                     FilterTab(
                         label = stringResource(R.string.notes_filter_favorites),
                         selected = filters.favoritesOnly,
                         onClick = { viewModel.selectTab(filters, favorites = true, categoryId = null) },
+                        enabled = state.counts.favorites > 0,
+                        count = state.counts.favorites,
                     )
                     state.categories.forEach { category ->
+                        val count = state.counts.of(category.id)
                         FilterTab(
                             label = category.name,
                             selected = !filters.favoritesOnly && filters.categoryId == category.id,
                             onClick = { viewModel.selectTab(filters, favorites = false, categoryId = category.id) },
+                            enabled = count > 0,
+                            count = count,
                         )
                     }
                 }
@@ -108,36 +115,29 @@ fun NotesScreen(
                     ),
                     icon = if (state.totalNotes == 0) R.drawable.fa_note_sticky_regular else R.drawable.fa_magnifying_glass,
                 )
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = spacing(4), end = spacing(4), bottom = spacing(24)),
-                    verticalArrangement = Arrangement.spacedBy(spacing(4)),
-                ) {
-                    items(state.notes, key = { it.id }) { note ->
-                        NoteCard(
-                            note = note,
-                            onClick = { onOpenNote(note.id) },
-                            actions = {
-                                NotesIconButton(
-                                    icon = if (note.favorite) R.drawable.fa_heart else R.drawable.fa_heart_regular,
-                                    contentDescription = stringResource(
-                                        if (note.favorite) R.string.note_unfavorite else R.string.note_favorite,
-                                    ),
-                                    onClick = { viewModel.toggleFavorite(note) },
-                                    tint = colors.accent,
-                                    size = IconButtonSize.SM,
-                                )
-                                NotesIconButton(
-                                    icon = R.drawable.fa_trash,
-                                    contentDescription = stringResource(R.string.note_trash),
-                                    onClick = { viewModel.trash(note) },
-                                    tint = colors.negative,
-                                    size = IconButtonSize.SM,
-                                )
-                            },
+                else -> NotesGrid(
+                    notes = state.notes,
+                    onOpenNote = onOpenNote,
+                    onReordered = viewModel::onReordered,
+                    actions = { note ->
+                        NotesIconButton(
+                            icon = if (note.favorite) R.drawable.fa_heart else R.drawable.fa_heart_regular,
+                            contentDescription = stringResource(
+                                if (note.favorite) R.string.note_unfavorite else R.string.note_favorite,
+                            ),
+                            onClick = { viewModel.toggleFavorite(note) },
+                            tint = colors.accent,
+                            size = IconButtonSize.SM,
                         )
-                    }
-                }
+                        NotesIconButton(
+                            icon = R.drawable.fa_trash,
+                            contentDescription = stringResource(R.string.note_trash),
+                            onClick = { viewModel.trash(note) },
+                            tint = colors.negative,
+                            size = IconButtonSize.SM,
+                        )
+                    },
+                )
             }
         }
 

@@ -49,6 +49,10 @@ interface NoteDao {
     @Query("SELECT MIN(position) FROM notes WHERE deleted_at IS NULL AND purged = 0")
     suspend fun minActivePosition(): Int?
 
+    /** Orden manual: sin `dirty` ni `updated_at`, viaja por `PATCH /notes/reorder`. */
+    @Query("UPDATE notes SET position = :position WHERE id = :id")
+    suspend fun setPosition(id: Long, position: Int)
+
     @Insert
     suspend fun insert(note: NoteEntity): Long
 
@@ -127,9 +131,12 @@ interface NoteDao {
     @Query("UPDATE notes SET remote_deleted = :deleted WHERE id IN (:ids)")
     suspend fun markRemoteDeleted(ids: List<Long>, deleted: Boolean)
 
-    /** El servidor ya no la tiene: se vuelve a crear en la proxima subida. */
-    @Query("UPDATE notes SET remote_id = NULL, remote_deleted = 0, dirty = 1 WHERE id = :id")
-    suspend fun unlinkRemote(id: Long)
+    /**
+     * El servidor ya no la tiene: se vuelve a crear en la proxima subida, con
+     * un `client_id` nuevo (es otra alta, no un reintento de la anterior).
+     */
+    @Query("UPDATE notes SET remote_id = NULL, remote_deleted = 0, dirty = 1, client_id = :clientId WHERE id = :id")
+    suspend fun unlinkRemote(id: Long, clientId: String)
 
     /**
      * Lo que el servidor ya habra purgado de su papelera (30 dias por defecto,
@@ -144,4 +151,13 @@ interface NoteDao {
         """,
     )
     suspend fun deleteExpiredTrash(before: Long): Int
+
+    // --- Cambio de cuenta ----------------------------------------------------
+
+    /** Lo sincronizado (con `remote_id`): pertenece a la cuenta anterior. */
+    @Query("DELETE FROM notes WHERE remote_id IS NOT NULL")
+    suspend fun deleteSynced()
+
+    @Query("DELETE FROM notes")
+    suspend fun deleteAll()
 }

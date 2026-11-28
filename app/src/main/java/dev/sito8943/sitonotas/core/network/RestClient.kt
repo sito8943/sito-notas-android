@@ -7,10 +7,13 @@ import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import okio.buffer
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -45,6 +48,13 @@ class RestClient(
         .callTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
+
+    private val uploadClient: OkHttpClient by lazy {
+        client.newBuilder()
+            .callTimeout(UPLOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(UPLOAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .build()
+    }
 
     suspend inline fun <reified T> get(path: String, auth: Boolean = false): T =
         request(path, HttpMethod.GET, null, auth)
@@ -94,6 +104,13 @@ class RestClient(
         auth: Boolean = false,
     ): String = execute(path, HttpMethod.POST, encode(body), auth, allowRefresh = true)
 
+    /** Como [postForRawBody], para los `PATCH /<recurso>/batch`. */
+    suspend inline fun <reified B> patchForRawBody(
+        path: String,
+        body: B,
+        auth: Boolean = true,
+    ): String = execute(path, HttpMethod.PATCH, encode(body), auth, allowRefresh = true)
+
     /** Para endpoints `204 No Content` como `/auth/sign-out`. */
     suspend inline fun <reified B> postForUnit(
         path: String,
@@ -102,6 +119,36 @@ class RestClient(
     ) {
         request<Unit>(path, HttpMethod.POST, body?.let { encode(it) }, auth)
     }
+
+    /**
+     * `POST` multipart con un solo fichero (`POST /notes/{id}/images`).
+     * [onProgress] recibe bytes enviados y total mientras se sube. Lleva su
+     * propio cliente con mas tiempo: 5 MB por datos moviles no caben en 15 s.
+     *
+     * @return el cuerpo tal cual (el backend devuelve una ruta en texto).
+     */
+    suspend fun postMultipartForRawBody(
+        path: String,
+        field: String,
+        fileName: String,
+        mediaType: String,
+        bytes: ByteArray,
+        onProgress: (sent: Long, total: Long) -> Unit = { _, _ -> },
+        auth: Boolean = true,
+    ): String = executeRequest(
+        path = path,
+        method = HttpMethod.POST,
+        body = {
+            val file = ProgressRequestBody(bytes.toRequestBody(mediaType.toMediaType()), onProgress)
+            MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(field, fileName, file)
+                .build()
+        },
+        auth = auth,
+        allowRefresh = true,
+        httpClient = uploadClient,
+    )
 
     @PublishedApi
     internal inline fun <reified B> encode(body: B): String =
@@ -136,6 +183,23 @@ class RestClient(
         body: String?,
         auth: Boolean,
         allowRefresh: Boolean,
+    ): String = executeRequest(
+        path = path,
+        method = method,
+        body = body?.let { text -> { text.toRequestBody(JSON_MEDIA_TYPE) } },
+        auth = auth,
+        allowRefresh = allowRefresh,
+        httpClient = client,
+    )
+
+    /** [body] es una fabrica: el reintento tras refrescar necesita un cuerpo nuevo. */
+    private suspend fun executeRequest(
+        path: String,
+        method: HttpMethod,
+        body: (() -> RequestBody)?,
+        auth: Boolean,
+        allowRefresh: Boolean,
+        httpClient: OkHttpClient,
     ): String = withContext(Dispatchers.IO) {
         val builder = Request.Builder()
             .url(baseUrl.trimEnd('/') + path)
@@ -145,7 +209,7 @@ class RestClient(
             tokens().accessToken()?.let { builder.header("Authorization", "Bearer $it") }
         }
 
-        val requestBody = body?.toRequestBody(JSON_MEDIA_TYPE)
+        val requestBody = body?.invoke()
         when (method) {
             HttpMethod.GET -> builder.get()
             HttpMethod.POST -> builder.post(requestBody ?: EMPTY_BODY)
@@ -155,7 +219,7 @@ class RestClient(
         }
 
         val response = try {
-            client.newCall(builder.build()).await()
+            httpClient.newCall(builder.build()).await()
         } catch (error: IOException) {
             // Fallo de red o timeout: se hace visible en vez de quedarse colgado.
             // No se incluye la URL en el mensaje: puede llevar token en la query.
@@ -172,7 +236,7 @@ class RestClient(
                 if (it.code == HTTP_UNAUTHORIZED && auth && allowRefresh) {
                     when (tokens().refresh()) {
                         RefreshOutcome.REFRESHED ->
-                            return@withContext execute(path, method, body, auth, allowRefresh = false)
+                            return@withContext executeRequest(path, method, body, auth, allowRefresh = false, httpClient)
 
                         // El servidor rechazo el refresh token: no hay vuelta atras.
                         RefreshOutcome.REJECTED -> tokens().onSessionExpired()
@@ -196,6 +260,7 @@ class RestClient(
     private companion object {
         const val REQUEST_TIMEOUT_SECONDS = 15L
         const val CONNECT_TIMEOUT_SECONDS = 10L
+        const val UPLOAD_TIMEOUT_SECONDS = 120L
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_NO_CONTENT = 204
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
@@ -220,3 +285,27 @@ private suspend fun Call.await(): Response =
             }
         })
     }
+
+/** Cuerpo que avisa de los bytes escritos (barra de progreso de la subida). */
+private class ProgressRequestBody(
+    private val delegate: RequestBody,
+    private val onProgress: (sent: Long, total: Long) -> Unit,
+) : RequestBody() {
+    override fun contentType() = delegate.contentType()
+
+    override fun contentLength(): Long = delegate.contentLength()
+
+    override fun writeTo(sink: okio.BufferedSink) {
+        val total = contentLength()
+        var sent = 0L
+        val counting = object : okio.ForwardingSink(sink) {
+            override fun write(source: okio.Buffer, byteCount: Long) {
+                super.write(source, byteCount)
+                sent += byteCount
+                onProgress(sent, total)
+            }
+        }.buffer()
+        delegate.writeTo(counting)
+        counting.flush()
+    }
+}

@@ -5,6 +5,7 @@ import dev.sito8943.sitonotas.core.data.NotesDatabase
 import dev.sito8943.sitonotas.core.data.VersionClock
 import dev.sito8943.sitonotas.core.data.entity.NoteEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
@@ -23,6 +24,16 @@ class NoteRepository(
     fun observeTrash(): Flow<List<Note>> = dao.observeTrash().map { rows -> rows.map { it.toDomain() } }
 
     fun observeNote(id: Long): Flow<Note?> = dao.observeById(id).map { it?.toDomain() }
+
+    /** Id de la nota en el servidor (nulo hasta que se sube): lo piden las imagenes. */
+    fun observeRemoteId(id: Long): Flow<Long?> = dao.observeById(id).map { it?.note?.remoteId }.distinctUntilChanged()
+
+    /** Server id of a local note; null while it was never uploaded (sharing needs it). */
+    suspend fun remoteIdOf(id: Long): Long? = dao.getById(id)?.takeIf { !it.purged }?.remoteId
+
+    /** Local id of an active note the server knows as [remoteId], if it is on this phone. */
+    suspend fun localIdOf(remoteId: Long): Long? =
+        dao.getByRemoteId(remoteId)?.takeIf { !it.purged && it.deletedAt == null }?.id
 
     /**
      * Nueva nota arriba del todo si ya hay orden manual (`min - 1`), igual que

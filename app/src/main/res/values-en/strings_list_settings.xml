@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="auth_sign_up_title">Create account</string>
+    <string name="auth_sign_up_subtitle">One Sito account works for all Sito apps</string>
+    <string name="auth_sign_up">Create account</string>
+    <string name="auth_to_sign_up">No account? Sign up</string>
+    <string name="auth_to_sign_in">Already registered? Sign in</string>
+    <string name="auth_confirm_password">Repeat password</string>
+    <string name="auth_error_password_too_short">Password must be at least 6 characters</string>
+    <string name="auth_error_passwords_differ">Passwords do not match</string>
+    <string name="auth_error_email_taken">An account with this email already exists</string>
+    <string name="auth_error_sign_up_disabled">Sign-up is turned off on the server. Create the account later or ask for access.</string>
+    <string name="auth_error_too_many">Too many attempts. Please wait a moment before trying again.</string>
+    <string name="auth_sign_up_done">Account created. Check your email to confirm it.</string>
+
+    <string name="settings_security">Security</string>
+    <string name="settings_current_password">Current password</string>
+    <string name="settings_new_password">New password</string>
+    <string name="settings_repeat_password">Repeat password</string>
+    <string name="settings_change_password">Change password</string>
+    <string name="settings_password_updated">Password updated. Sign in again.</string>
+    <string name="settings_password_wrong_current">Current password is incorrect</string>
+    <string name="settings_password_failed">Could not change the password: %1$s</string>
+
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_label">Anonymous usage analytics</string>
+    <string name="settings_privacy_allowed">Allowed</string>
+    <string name="settings_privacy_denied">Not allowed</string>
+    <string name="settings_privacy_helper">Counts which screens are used and on which day, with no data about you, your notes or your device. This version of the app does not send analytics yet: it only stores your choice.</string>
+
+    <string name="settings_backup">Import and export</string>
+    <string name="settings_backup_helper">A copy of your active notes and categories in a JSON file using the Sito Notes server export format.</string>
+    <string name="settings_export">Export</string>
+    <string name="settings_import">Import</string>
+    <string name="settings_export_done">Exported %1$d notes and %2$d categories.</string>
+    <string name="settings_import_done">Imported %1$d notes and %2$d new categories (%3$d notes already existed).</string>
+    <string name="settings_backup_failed">Could not read or write the file: %1$s</string>
+    <string name="settings_import_invalid">The file is not in the Sito Notes export format.</string>
+</resources>

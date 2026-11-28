@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 /**
  * Nota. Room es la fuente de verdad de la UI; el servidor manda en lo ya
@@ -41,6 +42,12 @@ data class NoteEntity(
     val dirty: Boolean = true,
     val purged: Boolean = false,
     @ColumnInfo(name = "local_version") val localVersion: Long = 0,
+    /**
+     * Identidad del alta generada aqui (UUID). Viaja como `clientId` en el
+     * POST: si la respuesta se pierde y el alta se repite, el servidor que lo
+     * soporte devuelve la fila ya creada en vez de duplicarla.
+     */
+    @ColumnInfo(name = "client_id") val clientId: String? = newClientId(),
 ) {
     /**
      * Tiene algo que el servidor aun no sabe. Al descargar, una fila asi no se
@@ -49,3 +56,6 @@ data class NoteEntity(
     val pending: Boolean
         get() = remoteId == null || dirty || purged || (deletedAt != null) != remoteDeleted
 }
+
+/** UUID nuevo para `client_id`. */
+fun newClientId(): String = UUID.randomUUID().toString()

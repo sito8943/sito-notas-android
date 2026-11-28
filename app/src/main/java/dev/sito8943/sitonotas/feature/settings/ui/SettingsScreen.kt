@@ -1,5 +1,7 @@
 package dev.sito8943.sitonotas.feature.settings.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,18 +21,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.BuildConfig
 import dev.sito8943.sitonotas.R
 import dev.sito8943.sitonotas.core.settings.AppLanguage
 import dev.sito8943.sitonotas.core.sync.SyncStatus
+import dev.sito8943.sitonotas.feature.settings.BackupStatus
+import dev.sito8943.sitonotas.feature.settings.PasswordError
+import dev.sito8943.sitonotas.feature.settings.PasswordFormState
 import dev.sito8943.sitonotas.feature.settings.SettingsUiState
 import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
 import dev.sito8943.sitonotas.ui.elements.ButtonColor
 import dev.sito8943.sitonotas.ui.elements.ButtonVariant
 import dev.sito8943.sitonotas.ui.elements.NotesButton
+import dev.sito8943.sitonotas.ui.elements.NotesPasswordField
 import dev.sito8943.sitonotas.ui.elements.NotesText
 import dev.sito8943.sitonotas.ui.elements.formatDateTime
 import dev.sito8943.sitonotas.ui.foundations.BorderWidth
@@ -44,7 +52,18 @@ import dev.sito8943.sitonotas.ui.theme.ThemePreference
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val password by viewModel.password.collectAsStateWithLifecycle()
+    val backupStatus by viewModel.backupStatus.collectAsStateWithLifecycle()
+    val analyticsAllowed by viewModel.analyticsAllowed.collectAsStateWithLifecycle()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
+
+    // Selector del sistema (SAF): sin permisos de almacenamiento.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(BACKUP_MIME_TYPE),
+    ) { uri -> uri?.let(viewModel::export) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let(viewModel::import) }
 
     Page(title = stringResource(R.string.settings_title)) {
         Column(
@@ -74,6 +93,18 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
             }
 
             if (state.accountEmail != null) {
+                Section(stringResource(R.string.settings_security)) {
+                    PasswordForm(
+                        form = password,
+                        onCurrentChange = viewModel::onCurrentPasswordChange,
+                        onNewChange = viewModel::onNewPasswordChange,
+                        onRepeatChange = viewModel::onRepeatPasswordChange,
+                        onSubmit = viewModel::changePassword,
+                    )
+                }
+            }
+
+            if (state.accountEmail != null) {
                 Section(stringResource(R.string.settings_sync)) {
                     NotesText(syncStatusText(state))
                     state.lastSyncAt?.let {
@@ -97,6 +128,35 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
                         onClick = viewModel::syncNow,
                         icon = R.drawable.fa_rotate,
                         loading = state.syncStatus is SyncStatus.Syncing,
+                    )
+                }
+            }
+
+            Section(stringResource(R.string.settings_backup)) {
+                NotesText(
+                    stringResource(R.string.settings_backup_helper),
+                    style = NotesTheme.typography.caption,
+                    color = NotesTheme.colors.textMuted,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing(2))) {
+                    NotesButton(
+                        text = stringResource(R.string.settings_export),
+                        onClick = { exportLauncher.launch(backupFileName()) },
+                        loading = backupStatus is BackupStatus.Working,
+                    )
+                    NotesButton(
+                        text = stringResource(R.string.settings_import),
+                        onClick = { importLauncher.launch(arrayOf(BACKUP_MIME_TYPE, "text/plain", "application/octet-stream")) },
+                        variant = ButtonVariant.OUTLINED,
+                        color = ButtonColor.PRIMARY,
+                        enabled = backupStatus !is BackupStatus.Working,
+                    )
+                }
+                backupStatusText(backupStatus)?.let { (text, failed) ->
+                    NotesText(
+                        text,
+                        style = NotesTheme.typography.caption,
+                        color = if (failed) NotesTheme.colors.negative else NotesTheme.colors.positive,
                     )
                 }
             }
@@ -133,6 +193,26 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
                 }
             }
 
+            // `PrivacySettings` de la web: indecisa se muestra como "No permitidas".
+            Section(stringResource(R.string.settings_privacy)) {
+                NotesText(stringResource(R.string.settings_privacy_label))
+                Choice(
+                    label = stringResource(R.string.settings_privacy_allowed),
+                    selected = analyticsAllowed,
+                    onClick = { viewModel.setAnalytics(true) },
+                )
+                Choice(
+                    label = stringResource(R.string.settings_privacy_denied),
+                    selected = !analyticsAllowed,
+                    onClick = { viewModel.setAnalytics(false) },
+                )
+                NotesText(
+                    stringResource(R.string.settings_privacy_helper),
+                    style = NotesTheme.typography.caption,
+                    color = NotesTheme.colors.textMuted,
+                )
+            }
+
             NotesText(
                 stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
                 style = NotesTheme.typography.caption,
@@ -157,6 +237,95 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSignIn: () -> Unit) {
 }
 
 @Composable
+private fun PasswordForm(
+    form: PasswordFormState,
+    onCurrentChange: (String) -> Unit,
+    onNewChange: (String) -> Unit,
+    onRepeatChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+) {
+    val enabled = !form.loading && !form.done
+    NotesPasswordField(
+        value = form.current,
+        onValueChange = onCurrentChange,
+        label = stringResource(R.string.settings_current_password),
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        imeAction = ImeAction.Next,
+        error = when (form.error) {
+            PasswordError.CURRENT_REQUIRED -> stringResource(R.string.auth_error_password_required)
+            PasswordError.WRONG_CURRENT -> stringResource(R.string.settings_password_wrong_current)
+            else -> null
+        },
+    )
+    NotesPasswordField(
+        value = form.new,
+        onValueChange = onNewChange,
+        label = stringResource(R.string.settings_new_password),
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        imeAction = ImeAction.Next,
+        contentType = ContentType.NewPassword,
+        error = stringResource(R.string.auth_error_password_too_short)
+            .takeIf { form.error == PasswordError.TOO_SHORT },
+    )
+    NotesPasswordField(
+        value = form.repeat,
+        onValueChange = onRepeatChange,
+        label = stringResource(R.string.settings_repeat_password),
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        contentType = ContentType.NewPassword,
+        error = stringResource(R.string.auth_error_passwords_differ)
+            .takeIf { form.error == PasswordError.MISMATCH },
+    )
+    when {
+        form.done -> NotesText(
+            stringResource(R.string.settings_password_updated),
+            style = NotesTheme.typography.caption,
+            color = NotesTheme.colors.positive,
+        )
+        form.error == PasswordError.NETWORK -> NotesText(
+            stringResource(R.string.auth_error_network),
+            style = NotesTheme.typography.caption,
+            color = NotesTheme.colors.negative,
+        )
+        form.error == PasswordError.OTHER -> NotesText(
+            stringResource(R.string.settings_password_failed, form.errorDetail.orEmpty()),
+            style = NotesTheme.typography.caption,
+            color = NotesTheme.colors.negative,
+        )
+    }
+    NotesButton(
+        text = stringResource(R.string.settings_change_password),
+        onClick = onSubmit,
+        loading = form.loading,
+        enabled = enabled && form.current.isNotEmpty() && form.new.isNotEmpty() && form.repeat.isNotEmpty(),
+    )
+}
+
+/** Texto del resultado y si es un fallo. */
+@Composable
+private fun backupStatusText(status: BackupStatus?): Pair<String, Boolean>? = when (status) {
+    null, BackupStatus.Working -> null
+    is BackupStatus.Exported ->
+        stringResource(R.string.settings_export_done, status.summary.notes, status.summary.categories) to false
+    is BackupStatus.Imported -> stringResource(
+        R.string.settings_import_done,
+        status.summary.notesCreated,
+        status.summary.categoriesCreated,
+        status.summary.notesSkipped,
+    ) to false
+    BackupStatus.Invalid -> stringResource(R.string.settings_import_invalid) to true
+    is BackupStatus.Failed -> stringResource(R.string.settings_backup_failed, status.message) to true
+}
+
+private const val BACKUP_MIME_TYPE = "application/json"
+
+/** `sito-notas-AAAA-MM-DD.json`. */
+private fun backupFileName(): String = "sito-notas-${java.time.LocalDate.now()}.json"
+
+@Composable
 private fun syncStatusText(state: SettingsUiState): String = when (val status = state.syncStatus) {
     SyncStatus.Idle -> stringResource(R.string.settings_sync_idle)
     SyncStatus.Syncing -> stringResource(R.string.settings_sync_running)
@@ -166,6 +335,7 @@ private fun syncStatusText(state: SettingsUiState): String = when (val status = 
     } else {
         stringResource(R.string.settings_sync_failed, status.message)
     }
+    is SyncStatus.AccountSwitch -> stringResource(R.string.settings_sync_account_switch)
 }
 
 /**

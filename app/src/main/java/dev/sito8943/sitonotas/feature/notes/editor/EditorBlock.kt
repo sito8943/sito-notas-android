@@ -24,6 +24,10 @@ data class EditorBlock(
     val closing: String? = null,
     /** Codigo: si hay al menos una linea entre las vallas (`text` vacio es ambiguo). */
     val hasBody: Boolean = true,
+    /** Imagen: la URL de `![alt](url)`; el Markdown sigue entero en `text`. */
+    val imageUrl: String? = null,
+    /** Imagen: el texto alternativo. */
+    val imageAlt: String = "",
 ) {
     val source: String
         get() = when (type) {
@@ -49,7 +53,13 @@ enum class BlockType {
     RULE,
 
     /**
-     * Linea que el editor no sabe pintar (tabla, HTML, imagen, subrayado de
+     * Imagen sola en su linea (`![alt](url)`), como el nodo `image` de la web.
+     * `text` es la linea entera tal cual: se pinta la imagen, no se edita.
+     */
+    IMAGE,
+
+    /**
+     * Linea que el editor no sabe pintar (tabla, HTML, imagen con texto, subrayado de
      * encabezado setext, definicion de enlace). Se muestra y edita como texto
      * Markdown, sin perder nada.
      */

@@ -3,10 +3,14 @@ package dev.sito8943.sitonotas.core.settings
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dev.sito8943.sitonotas.core.sync.PendingReorderStore
+import dev.sito8943.sitonotas.core.sync.SyncCursor
 import dev.sito8943.sitonotas.core.sync.SyncStateStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -21,7 +25,7 @@ private val Context.preferencesStore: DataStore<Preferences> by preferencesDataS
  * vive en Room ni se sincroniza. Tambien guarda el estado de la sincronizacion
  * (cursor de descarga y ultima sincronizacion correcta).
  */
-class AppPreferences(context: Context) : SyncStateStore {
+class AppPreferences(context: Context) : SyncStateStore, PendingReorderStore {
 
     private val store = context.applicationContext.preferencesStore
 
@@ -42,14 +46,54 @@ class AppPreferences(context: Context) : SyncStateStore {
     }
 
     /**
-     * El cursor va por usuario: si entra otra cuenta en el mismo telefono, su
-     * primera descarga tiene que ser completa, no continuar la de la anterior.
+     * Los cursores van por usuario: si entra otra cuenta en el mismo telefono,
+     * su primera descarga tiene que ser completa, no continuar la de la anterior.
      */
-    override suspend fun pullCursor(userId: Long): String? =
-        store.data.first()[pullCursorKey(userId)]
+    override suspend fun cursor(userId: Long, kind: SyncCursor): String? =
+        store.data.first()[cursorKey(userId, kind)]
 
-    override suspend fun setPullCursor(userId: Long, cursor: String?) =
-        setOrRemove(pullCursorKey(userId), cursor)
+    override suspend fun setCursor(userId: Long, kind: SyncCursor, value: String?) =
+        setOrRemove(cursorKey(userId, kind), value)
+
+    override suspend fun dataOwner(): Long? = store.data.first()[DATA_OWNER]
+
+    override suspend fun setDataOwner(userId: Long) {
+        store.edit { it[DATA_OWNER] = userId }
+    }
+
+    /**
+     * Consentimiento de analitica de uso, como `consent_notes` en la web
+     * (`{analytics, version, decidedAt}`). Nulo = sin decidir (= no). Una
+     * version distinta de [CONSENT_VERSION] cuenta como sin decidir.
+     * La app no envia analitica: solo se guarda la eleccion.
+     */
+    val analyticsConsent: Flow<Boolean?> = store.data.map {
+        if (it[CONSENT_VERSION_KEY] == CONSENT_VERSION) it[CONSENT_ANALYTICS] else null
+    }
+
+    suspend fun setAnalyticsConsent(allowed: Boolean, decidedAt: Long = System.currentTimeMillis()) {
+        store.edit {
+            it[CONSENT_ANALYTICS] = allowed
+            it[CONSENT_VERSION_KEY] = CONSENT_VERSION
+            it[CONSENT_DECIDED_AT] = decidedAt
+        }
+    }
+
+    override suspend fun pendingReorder(): List<Long>? =
+        store.data.first()[PENDING_REORDER]?.let(::decodeIds)
+
+    override suspend fun setPendingReorder(localIds: List<Long>) {
+        store.edit { it[PENDING_REORDER] = localIds.joinToString(",") }
+    }
+
+    override suspend fun clearPendingReorderIf(expected: List<Long>) {
+        store.edit { preferences ->
+            if (preferences[PENDING_REORDER]?.let(::decodeIds) == expected) preferences.remove(PENDING_REORDER)
+        }
+    }
+
+    private fun decodeIds(raw: String): List<Long> =
+        raw.split(',').mapNotNull { it.trim().toLongOrNull() }
 
     private suspend fun setOrRemove(key: Preferences.Key<String>, value: String?) {
         store.edit { preferences ->
@@ -61,7 +105,24 @@ class AppPreferences(context: Context) : SyncStateStore {
         val LANGUAGE_TAG = stringPreferencesKey("language_tag")
         val THEME_NAME = stringPreferencesKey("theme_name")
         val LAST_SYNC_AT = longPreferencesKey("last_sync_at")
+        val PENDING_REORDER = stringPreferencesKey("pending_reorder")
+        val CONSENT_ANALYTICS = booleanPreferencesKey("consent_analytics")
+        val CONSENT_VERSION_KEY = intPreferencesKey("consent_version")
+        val CONSENT_DECIDED_AT = longPreferencesKey("consent_decided_at")
 
-        fun pullCursorKey(userId: Long) = stringPreferencesKey("pull_cursor_$userId")
+        /** `CONSENT_VERSION` de la web. */
+        const val CONSENT_VERSION = 1
+
+        val DATA_OWNER = longPreferencesKey("data_owner")
+
+        /** `NOTES` conserva la clave de la version 1 (`pull_cursor_<id>`). */
+        fun cursorKey(userId: Long, kind: SyncCursor) = stringPreferencesKey(
+            when (kind) {
+                SyncCursor.NOTES -> "pull_cursor_$userId"
+                SyncCursor.CATEGORIES -> "categories_cursor_$userId"
+                SyncCursor.NOTE_TOMBSTONES -> "note_tombstones_cursor_$userId"
+                SyncCursor.CATEGORY_TOMBSTONES -> "category_tombstones_cursor_$userId"
+            },
+        )
     }
 }

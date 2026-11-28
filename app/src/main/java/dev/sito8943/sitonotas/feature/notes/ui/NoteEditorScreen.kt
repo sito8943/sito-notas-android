@@ -1,6 +1,20 @@
 package dev.sito8943.sitonotas.feature.notes.ui
 
+import android.content.ClipboardManager
+import android.content.Context
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalContext
+import dev.sito8943.sitonotas.core.network.ImageLoader
+import dev.sito8943.sitonotas.feature.notes.images.ImageUploadError
+import dev.sito8943.sitonotas.feature.notes.images.ImageUploadProgress
+import dev.sito8943.sitonotas.ui.elements.formatRelativeNoteDate
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.border
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.LaunchedEffect
@@ -69,7 +83,13 @@ import dev.sito8943.sitonotas.ui.templates.EmptyState
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 
 @Composable
-fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
+fun NoteEditorScreen(
+    viewModel: NoteEditorViewModel,
+    onBack: () -> Unit,
+    imageLoader: ImageLoader? = null,
+    /** Opens sharing for the note (local id; null while a new note is unsaved). */
+    onShare: ((Long?) -> Unit)? = null,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = NotesTheme.colors
     var pickingCategories by rememberSaveable { mutableStateOf(false) }
@@ -77,7 +97,7 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     val loaded = !state.loading && !state.missing
 
     // Se edita con formato, como en la web. Una nota con algo que el editor
-    // solo sabe mostrar como Markdown (imagenes, tablas, HTML) se abre ya en
+    // solo sabe mostrar como Markdown (tablas, HTML) se abre ya en
     // Markdown. Nulo = aun no se decidio (la nota no ha cargado).
     var markdownMode by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var richEpoch by rememberSaveable { mutableIntStateOf(0) }
@@ -89,7 +109,7 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     val rich = if (loaded && markdownMode == false) {
         // Se crea desde el contenido actual al cargar y cada vez que se vuelve
         // de Markdown; despues el editor es la fuente y solo avisa de cambios.
-        remember(richEpoch) { RichEditorState(state.content, viewModel::onContentChange) }
+        remember(richEpoch, state.externalRevision) { RichEditorState(state.content, viewModel::onContentChange) }
     } else {
         null
     }
@@ -97,6 +117,28 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     val leave = {
         viewModel.flush()
         onBack()
+    }
+
+    // Imagenes: galeria (selector del sistema, sin permisos) o portapapeles.
+    val context = LocalContext.current
+    val pickImages = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(MAX_PICKED_IMAGES),
+    ) { uris -> viewModel.uploadImages(uris) }
+    val pasteImage = {
+        val uris = clipboardImageUris(context)
+        if (uris.isEmpty()) viewModel.reportImageError(ImageUploadError.NO_CLIPBOARD_IMAGE) else viewModel.uploadImages(uris)
+    }
+    // Lo subido entra donde estaba el cursor (o al final del Markdown).
+    LaunchedEffect(state.uploadedImages, rich, markdownMode) {
+        val uploaded = state.uploadedImages
+        if (uploaded.isEmpty() || !loaded || markdownMode == null) return@LaunchedEffect
+        val urls = uploaded.map { it.url }
+        if (rich != null) {
+            rich.insertImages(urls)
+        } else {
+            viewModel.onContentChange(appendImageLines(state.content, urls))
+        }
+        viewModel.onImagesInserted(uploaded.mapTo(mutableSetOf()) { it.key })
     }
     BackHandler(onBack = leave)
 
@@ -114,6 +156,12 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
             onBack = leave,
             onToggleFavorite = viewModel::toggleFavorite,
             onTrash = { confirmTrash = true },
+            onShare = onShare?.let { share ->
+                {
+                    viewModel.flush()
+                    share(viewModel.state.value.noteId)
+                }
+            },
         )
 
         when {
@@ -124,6 +172,8 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
                     title = state.title,
                     content = state.content,
                     rich = rich,
+                    updatedAt = state.updatedAt,
+                    imageLoader = imageLoader,
                     categories = state.selectedCategories,
                     onTitleChange = viewModel::onTitleChange,
                     onContentChange = viewModel::onContentChange,
@@ -131,8 +181,20 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
                     onRemoveCategory = { id -> viewModel.setCategories(state.categoryIds - id) },
                     modifier = Modifier.weight(1f),
                 )
+                ImageUploadStatus(
+                    progress = state.imageUpload,
+                    error = state.imageError,
+                    onDismissError = viewModel::dismissImageError,
+                )
                 EditorToolbar(
                     state = rich,
+                    onPickImage = if (imageLoader != null) {
+                        { pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                    } else {
+                        null
+                    },
+                    onPasteImage = pasteImage,
+                    imageBusy = state.imageUpload != null,
                     markdownMode = markdownMode == true,
                     onToggleMarkdown = {
                         if (markdownMode == true) richEpoch++
@@ -181,6 +243,7 @@ private fun EditorHeader(
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
     onTrash: () -> Unit,
+    onShare: (() -> Unit)? = null,
 ) {
     val colors = NotesTheme.colors
     Column {
@@ -226,6 +289,13 @@ private fun EditorHeader(
                     onClick = onToggleFavorite,
                     tint = if (favorite) colors.accent else colors.textMuted,
                 )
+                if (onShare != null) {
+                    NotesIconButton(
+                        icon = R.drawable.fa_share_nodes,
+                        contentDescription = stringResource(R.string.share_action),
+                        onClick = onShare,
+                    )
+                }
                 NotesIconButton(
                     icon = R.drawable.fa_trash,
                     contentDescription = stringResource(R.string.note_trash),
@@ -242,6 +312,8 @@ private fun EditorBody(
     title: String,
     content: String,
     rich: RichEditorState?,
+    updatedAt: Long?,
+    imageLoader: ImageLoader?,
     categories: List<Category>,
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
@@ -271,6 +343,8 @@ private fun EditorBody(
                 onNext = rich?.let { editor -> { editor.blocks.firstOrNull()?.let { editor.focus(it.id, 0) } } },
             )
 
+            if (updatedAt != null) UpdatedLabel(updatedAt)
+
             // Como `NoteTags`: chips con X para quitar y el chip discontinuo
             // para añadir.
             FlowRow(
@@ -296,7 +370,11 @@ private fun EditorBody(
         }
 
         if (rich != null) {
-            RichNoteEditor(state = rich, placeholder = stringResource(R.string.editor_content_placeholder))
+            RichNoteEditor(
+                state = rich,
+                placeholder = stringResource(R.string.editor_content_placeholder),
+                imageLoader = imageLoader,
+            )
         } else {
             MarkdownSource(content = content, onContentChange = onContentChange)
         }
@@ -348,6 +426,112 @@ private fun MarkdownSource(content: String, onContentChange: (String) -> Unit) {
         )
     }
 }
+
+/**
+ * "Editado hace 5 minutos", como `NoteMeta` de la web. Se recalcula cada
+ * minuto y al cambiar la fecha.
+ */
+@Composable
+private fun UpdatedLabel(updatedAt: Long) {
+    val now by produceState(System.currentTimeMillis(), updatedAt) {
+        while (true) {
+            value = System.currentTimeMillis()
+            delay(UPDATED_TICK_MILLIS)
+        }
+    }
+    NotesText(
+        stringResource(R.string.editor_updated, formatRelativeNoteDate(updatedAt, now)),
+        style = NotesTheme.typography.small,
+        color = NotesTheme.colors.textMuted,
+        maxLines = 1,
+    )
+}
+
+/** Barra de subida (progreso) o del ultimo error, sobre la de formato. */
+@Composable
+private fun ImageUploadStatus(progress: ImageUploadProgress?, error: ImageUploadError?, onDismissError: () -> Unit) {
+    val colors = NotesTheme.colors
+    if (progress == null && error == null) return
+    Column(modifier = Modifier.fillMaxWidth().background(colors.surface)) {
+        HorizontalDivider(color = colors.border)
+        if (progress != null) {
+            val percent = progress.progress?.let { (it * 100).toInt() }
+            NotesText(
+                if (percent == null) {
+                    stringResource(R.string.editor_image_uploading, progress.index, progress.count)
+                } else {
+                    stringResource(R.string.editor_image_uploading_percent, progress.index, progress.count, percent)
+                },
+                style = NotesTheme.typography.small,
+                color = colors.textMuted,
+                modifier = Modifier.padding(horizontal = spacing(4), vertical = spacing(2)),
+            )
+            val fraction = progress.progress
+            if (fraction == null) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = colors.accent, trackColor = colors.border)
+            } else {
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = colors.accent,
+                    trackColor = colors.border,
+                )
+            }
+        } else if (error != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = spacing(4)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NotesText(
+                    stringResource(error.message()),
+                    style = NotesTheme.typography.small,
+                    color = colors.negative,
+                    modifier = Modifier.weight(1f).padding(vertical = spacing(2)),
+                )
+                NotesIconButton(
+                    icon = R.drawable.fa_xmark,
+                    contentDescription = stringResource(R.string.common_back),
+                    onClick = onDismissError,
+                )
+            }
+        }
+    }
+}
+
+private fun ImageUploadError.message(): Int = when (this) {
+    ImageUploadError.NEEDS_ACCOUNT -> R.string.editor_image_error_account
+    ImageUploadError.NOT_SYNCED -> R.string.editor_image_error_not_synced
+    ImageUploadError.OFFLINE -> R.string.editor_image_error_offline
+    ImageUploadError.INVALID_TYPE -> R.string.editor_image_error_invalid_type
+    ImageUploadError.TOO_LARGE -> R.string.editor_image_error_too_large
+    ImageUploadError.UNREADABLE -> R.string.editor_image_error_unreadable
+    ImageUploadError.NO_CLIPBOARD_IMAGE -> R.string.editor_image_error_no_clipboard
+    ImageUploadError.NOT_FOUND -> R.string.editor_image_error_not_found
+    ImageUploadError.SERVER -> R.string.editor_image_error_server
+}
+
+/** Imagenes del portapapeles (las copiadas desde otra app o una captura). */
+private fun clipboardImageUris(context: Context): List<Uri> {
+    val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return emptyList()
+    val clip = runCatching { clipboard.primaryClip }.getOrNull() ?: return emptyList()
+    val describedAsImage = clip.description.hasMimeType("image/*")
+    return (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }.filter { uri ->
+        describedAsImage || runCatching { context.contentResolver.getType(uri) }.getOrNull()?.startsWith("image/") == true
+    }
+}
+
+/** En modo Markdown la imagen va al final, una por linea (`toMarkdownImage` de la web). */
+internal fun appendImageLines(content: String, urls: List<String>): String {
+    val lines = urls.joinToString("\n") { MarkdownDocument.imageLine(it) }
+    return when {
+        content.isEmpty() -> lines
+        content.endsWith("\n") -> content + lines
+        else -> content + "\n" + lines
+    }
+}
+
+private const val MAX_PICKED_IMAGES = 10
+private const val UPDATED_TICK_MILLIS = 60_000L
 
 /** Campo sin borde: el editor es la pagina, no un formulario. */
 @Composable

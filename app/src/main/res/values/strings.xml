@@ -77,10 +77,29 @@
     <string name="editor_markdown_mode">Editar como Markdown</string>
     <string name="editor_rich_mode">Volver al texto con formato</string>
     <string name="editor_markdown_hint">Editando el Markdown de la nota</string>
-    <string name="editor_raw_notice">Esta nota tiene imágenes, tablas u otro contenido que el editor con formato no puede mostrar, así que se abre como Markdown.</string>
+    <string name="editor_raw_notice">Esta nota tiene tablas, HTML u otro contenido que el editor con formato no puede mostrar, así que se abre como Markdown.</string>
     <string name="editor_task">Tarea</string>
     <string name="editor_task_done">Hecha</string>
     <string name="editor_task_pending">Pendiente</string>
+    <string name="editor_updated">Editado %1$s</string>
+    <string name="editor_image">Imagen</string>
+    <string name="editor_image_gallery">Elegir de la galería</string>
+    <string name="editor_image_paste">Pegar imagen</string>
+    <string name="editor_image_remove">Quitar imagen</string>
+    <string name="editor_image_open">Ver imagen</string>
+    <string name="editor_image_loading">Cargando imagen…</string>
+    <string name="editor_image_failed">No se pudo cargar la imagen. Toca para reintentar.</string>
+    <string name="editor_image_uploading">Subiendo imagen %1$d de %2$d…</string>
+    <string name="editor_image_uploading_percent">Subiendo imagen %1$d de %2$d… %3$d %%</string>
+    <string name="editor_image_error_account">Inicia sesión para añadir imágenes: se guardan en tu cuenta.</string>
+    <string name="editor_image_error_not_synced">La nota aún no está en el servidor. Conéctate y vuelve a intentarlo cuando se sincronice.</string>
+    <string name="editor_image_error_offline">Sin conexión: la imagen no se subió.</string>
+    <string name="editor_image_error_invalid_type">Solo se pueden pegar imágenes JPG, PNG, WebP o GIF</string>
+    <string name="editor_image_error_too_large">La imagen pesa más de 5 MB</string>
+    <string name="editor_image_error_unreadable">No se pudo leer la imagen.</string>
+    <string name="editor_image_error_no_clipboard">No hay ninguna imagen en el portapapeles.</string>
+    <string name="editor_image_error_not_found">La nota no existe en el servidor o no puedes editarla.</string>
+    <string name="editor_image_error_server">El servidor no aceptó la imagen. Inténtalo de nuevo.</string>
 
     <!-- Categorías -->
     <string name="categories_title">Categorías</string>
@@ -151,4 +170,13 @@
     <string name="settings_language_es">Español</string>
     <string name="settings_language_en">English</string>
     <string name="settings_version">Versión %1$s</string>
+    <string name="settings_sync_account_switch">Esperando a decidir qué hacer con los cambios de la otra cuenta.</string>
+    <string name="account_switch_title">Cambios de otra cuenta</string>
+    <plurals name="account_switch_message">
+        <item quantity="one">Hay %d cambio sin subir de la cuenta anterior. ¿Lo subes a esta cuenta o lo descartas?</item>
+        <item quantity="many">Hay %d cambios sin subir de la cuenta anterior. ¿Los subes a esta cuenta o los descartas?</item>
+        <item quantity="other">Hay %d cambios sin subir de la cuenta anterior. ¿Los subes a esta cuenta o los descartas?</item>
+    </plurals>
+    <string name="account_switch_upload">Subir a esta cuenta</string>
+    <string name="account_switch_discard">Descartar</string>
 </resources>

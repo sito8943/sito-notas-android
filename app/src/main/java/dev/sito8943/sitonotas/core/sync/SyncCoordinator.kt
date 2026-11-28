@@ -37,6 +37,12 @@ sealed interface SyncStatus {
      * rechazo del servidor (no).
      */
     data class Failed(val message: String, val offline: Boolean) : SyncStatus
+
+    /**
+     * Entro otra cuenta y hay [pending] cambios sin subir de la anterior: no se
+     * sincroniza hasta que se decida (`SyncCoordinator.resolveAccountSwitch`).
+     */
+    data class AccountSwitch(val pending: Int) : SyncStatus
 }
 
 /**
@@ -61,6 +67,7 @@ class SyncCoordinator(
     private val pendingStats: Flow<PendingStats>,
     private val sessionState: StateFlow<SessionState>,
     private val scope: CoroutineScope,
+    private val accountGuard: AccountGuard? = null,
     private val debounceMillis: Long = DEBOUNCE_MILLIS,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
@@ -114,11 +121,34 @@ class SyncCoordinator(
     /** El boton manual: sincroniza ya y devuelve el resultado. */
     suspend fun syncNow(): Result<SyncResult> = runSync()
 
+    /**
+     * Respuesta al dialogo de cambio de cuenta: [upload] sube lo pendiente a
+     * la cuenta nueva; si no, se descarta. Despues sincroniza.
+     */
+    fun resolveAccountSwitch(upload: Boolean) {
+        val userId = currentUserId() ?: return
+        scope.launch {
+            running.withLock {
+                accountGuard?.resolve(userId, upload)
+                _status.value = SyncStatus.Idle
+            }
+            runSync()
+        }
+    }
+
+    private fun currentUserId(): Long? =
+        (sessionState.value as? SessionState.Authenticated)?.session?.userId
+
     private suspend fun runSync(): Result<SyncResult> {
-        val userId = (sessionState.value as? SessionState.Authenticated)?.session?.userId
+        val userId = currentUserId()
             ?: return Result.failure(IllegalStateException("Sin sesion"))
 
         return running.withLock {
+            val waiting = accountGuard?.check(userId) ?: 0
+            if (waiting > 0) {
+                _status.value = SyncStatus.AccountSwitch(waiting)
+                return@withLock Result.failure(AccountSwitchPendingException(waiting))
+            }
             _status.value = SyncStatus.Syncing
             try {
                 val result = engine.sync(userId)
@@ -141,3 +171,7 @@ class SyncCoordinator(
         const val DEBOUNCE_MILLIS = 1_500L
     }
 }
+
+/** No se sincroniza: falta decidir que hacer con lo pendiente de la cuenta anterior. */
+class AccountSwitchPendingException(val pending: Int) :
+    Exception("$pending cambios de otra cuenta esperan una decision")

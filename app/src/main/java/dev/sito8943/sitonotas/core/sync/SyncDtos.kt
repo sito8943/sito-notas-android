@@ -52,12 +52,17 @@ data class RemoteCategory(
     val deletedAt: String? = null,
 )
 
-/** `CreateNoteRequest`: no lleva `favorite` (va despues por PATCH). */
+/**
+ * `CreateNoteRequest`: no lleva `favorite` (va despues por PATCH).
+ * `clientId` hace el alta idempotente en el servidor nuevo; el anterior lo
+ * ignora (Spring Boot no falla con campos desconocidos).
+ */
 @Serializable
 data class CreateNoteBody(
     val title: String,
     val content: String,
     val categoryIds: List<Long>,
+    val clientId: String? = null,
 )
 
 /**
@@ -78,6 +83,7 @@ data class CreateCategoryBody(
     val name: String,
     val description: String? = null,
     val color: String? = null,
+    val clientId: String? = null,
 )
 
 /** `UpdateCategoryRequest`: el backend reemplaza la fila entera, asi que va todo. */
@@ -87,4 +93,14 @@ data class UpdateCategoryBody(
     val name: String,
     val description: String? = null,
     val color: String? = null,
+)
+
+/**
+ * `DeletedIdsResponse`: ids borrados para siempre desde `since` y `until`, la
+ * hora del servidor que hay que mandar como siguiente `since`.
+ */
+@Serializable
+data class DeletedIds(
+    val ids: List<Long> = emptyList(),
+    val until: String? = null,
 )
