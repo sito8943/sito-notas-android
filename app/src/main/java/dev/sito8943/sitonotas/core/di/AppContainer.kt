@@ -10,6 +10,8 @@ import dev.sito8943.sitonotas.core.data.VersionClock
 import dev.sito8943.sitonotas.core.network.RestClient
 import dev.sito8943.sitonotas.core.settings.AppPreferences
 import dev.sito8943.sitonotas.core.sync.NotesApi
+import dev.sito8943.sitonotas.core.sync.ReorderApi
+import dev.sito8943.sitonotas.core.sync.ReorderSync
 import dev.sito8943.sitonotas.core.sync.SyncCoordinator
 import dev.sito8943.sitonotas.core.sync.SyncEngine
 import dev.sito8943.sitonotas.core.sync.SyncPull
@@ -78,12 +80,23 @@ class AppContainer(context: Context) {
 
     private val notesApi by lazy { NotesApi(notesClient) }
 
+    /** Orden manual: se aplica en local y sube como paso extra de la sync. */
+    val reorderSync: ReorderSync by lazy {
+        ReorderSync(
+            database = database,
+            store = preferences,
+            api = ReorderApi(notesClient),
+            requestSync = { syncCoordinator.requestSync() },
+        )
+    }
+
     val syncCoordinator: SyncCoordinator by lazy {
         SyncCoordinator(
             engine = SyncEngine(
                 push = SyncPush(database, notesApi),
                 pull = SyncPull(database, notesApi, preferences),
                 state = preferences,
+                extraSteps = listOf(reorderSync),
             ),
             pendingStats = database.sync().observePendingStats(),
             sessionState = sessionRepository.state,
@@ -93,7 +106,12 @@ class AppContainer(context: Context) {
 
     fun createAuthViewModel() = AuthViewModel(authApi, sessionRepository)
 
-    fun createNotesViewModel() = NotesViewModel(noteRepository, categoryRepository)
+    fun createNotesViewModel() = NotesViewModel(
+        notes = noteRepository,
+        categories = categoryRepository,
+        preferences = preferences,
+        reorder = reorderSync::reorder,
+    )
 
     fun createNoteEditorViewModel(noteId: Long?) = NoteEditorViewModel(
         noteId = noteId,

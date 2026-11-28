@@ -49,6 +49,10 @@ interface NoteDao {
     @Query("SELECT MIN(position) FROM notes WHERE deleted_at IS NULL AND purged = 0")
     suspend fun minActivePosition(): Int?
 
+    /** Orden manual: sin `dirty` ni `updated_at`, viaja por `PATCH /notes/reorder`. */
+    @Query("UPDATE notes SET position = :position WHERE id = :id")
+    suspend fun setPosition(id: Long, position: Int)
+
     @Insert
     suspend fun insert(note: NoteEntity): Long
 
