@@ -58,7 +58,7 @@ object NoteImageRules {
         if (path.length >= 2 && path.startsWith('"') && path.endsWith('"')) {
             path = path.substring(1, path.length - 1).replace("\\/", "/")
         }
-        if (path.isEmpty() || path.any { it.isWhitespace() || it == '(' || it == ')' }) return null
+        if (path.isEmpty() || path.any { it.isWhitespace() || it in "()[]{}\"<>" }) return null
         if (path.startsWith("https://", ignoreCase = true) || path.startsWith("http://", ignoreCase = true)) return path
         return baseUrl.trimEnd('/') + "/" + path.trimStart('/')
     }

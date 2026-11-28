@@ -20,13 +20,21 @@ fun interface NoteImageUploader {
 class NoteImagesApi(private val client: RestClient, private val baseUrl: String) : NoteImageUploader {
 
     override suspend fun upload(remoteId: Long, image: PreparedImage, onProgress: (Float) -> Unit): String {
+        var lastPercent = -1
         val body = client.postMultipartForRawBody(
             path = "/notes/$remoteId/images",
             field = FIELD,
             fileName = image.fileName,
             mediaType = image.mimeType,
             bytes = image.bytes,
-            onProgress = { sent, total -> if (total > 0) onProgress((sent.toFloat() / total).coerceIn(0f, 1f)) },
+            onProgress = { sent, total ->
+                // Solo cuando cambia el porcentaje: el sink avisa cada pocos KB.
+                val percent = if (total > 0) (sent * 100 / total).toInt() else -1
+                if (percent >= 0 && percent != lastPercent) {
+                    lastPercent = percent
+                    onProgress(percent / 100f)
+                }
+            },
         )
         return NoteImageRules.resolveUrl(baseUrl, body)
             ?: throw ApiException(status = 200, message = "Respuesta de subida de imagen no valida")
