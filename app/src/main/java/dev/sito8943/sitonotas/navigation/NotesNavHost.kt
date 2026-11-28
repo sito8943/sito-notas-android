@@ -159,7 +159,11 @@ fun NotesNavHost(
                     val viewModel: NoteEditorViewModel = viewModel {
                         container.createNoteEditorViewModel(route.noteId)
                     }
-                    NoteEditorScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                    NoteEditorScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                        imageLoader = container.imageLoader,
+                    )
                 }
                 composable<CategoriesRoute> {
                     val viewModel: CategoriesViewModel = viewModel { container.createCategoriesViewModel() }

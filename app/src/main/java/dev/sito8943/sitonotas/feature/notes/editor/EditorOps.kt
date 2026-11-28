@@ -60,7 +60,12 @@ object EditorOps {
         )
         // Un parrafo no se convierte mientras la marca no lleve su espacio:
         // escribir "-5 grados" no debe pasar por una viñeta.
-        val next = if (
+        val next = if (reparsed.type == BlockType.IMAGE) {
+            // Una imagen escrita a mano se sigue editando como texto: si se
+            // volviera imagen aqui, el campo desapareceria bajo el cursor. Al
+            // reabrir la nota ya se ve como imagen.
+            EditorBlock(block.id, BlockType.RAW, "", block.prefix + newText)
+        } else if (
             block.type == BlockType.PARAGRAPH &&
             reparsed.type != BlockType.PARAGRAPH &&
             reparsed.type != BlockType.RULE &&
@@ -121,6 +126,8 @@ object EditorOps {
         }
         val previous = blocks.getOrNull(index - 1) ?: return EditResult(blocks, block.id, 0)
         return when {
+            // Una imagen no se une con texto: se borra con su boton.
+            previous.type == BlockType.IMAGE -> EditResult(blocks, block.id, 0)
             previous.type == BlockType.RULE ->
                 EditResult(blocks.filterIndexed { i, _ -> i != index - 1 }, block.id, 0)
             previous.type == BlockType.CODE || block.type == BlockType.RULE || block.type == BlockType.CODE -> {
@@ -157,7 +164,7 @@ object EditorOps {
      */
     fun setBlockType(blocks: List<EditorBlock>, index: Int, target: BlockType, level: Int = 1): List<EditorBlock> {
         val block = blocks[index]
-        if (block.type == BlockType.CODE || block.type == BlockType.RULE) return blocks
+        if (block.type == BlockType.CODE || block.type == BlockType.RULE || block.type == BlockType.IMAGE) return blocks
         val same = block.type == target && (target != BlockType.HEADING || block.level == level)
         val indent = if (block.isList) block.prefix.takeWhile { it == ' ' || it == '\t' } else ""
         val prefix = when {
@@ -224,6 +231,47 @@ object EditorOps {
         val result = text.substring(0, start) + link + text.substring(end)
         return TextEdit(result, start + link.length, start + link.length)
     }
+
+    /**
+     * Inserta imagenes (una por linea, `![](url)`) donde esta el cursor, como
+     * el `insertContentAt` de la web: un parrafo se parte en el cursor, un
+     * parrafo vacio se sustituye y en los demas bloques van debajo. Sin
+     * bloque ([index] nulo) van al final.
+     *
+     * @return los bloques y el bloque de texto donde seguir escribiendo (o el
+     * que tenia el foco si no queda ninguno despues).
+     */
+    fun insertImages(blocks: List<EditorBlock>, index: Int?, caret: Int, urls: List<String>, ids: IdSource): EditResult {
+        val images = urls.map { MarkdownDocument.parseLine(MarkdownDocument.imageLine(it), ids.next()) }
+        if (images.isEmpty() || index == null || index !in blocks.indices) {
+            val focus = blocks.lastOrNull()?.id ?: images.firstOrNull()?.id ?: 0L
+            return EditResult(blocks + images, focus, 0)
+        }
+        val block = blocks[index]
+        val result = blocks.toMutableList()
+        if (block.type == BlockType.PARAGRAPH && block.text.isEmpty()) {
+            result.removeAt(index)
+            result.addAll(index, images)
+            return EditResult(result, blocks.getOrNull(index + 1)?.id ?: block.id, 0)
+        }
+        val at = caret.coerceIn(0, block.text.length)
+        if (block.type == BlockType.PARAGRAPH && at < block.text.length) {
+            val before = block.text.substring(0, at)
+            val after = EditorBlock(ids.next(), BlockType.PARAGRAPH, "", block.text.substring(at))
+            if (before.isEmpty()) {
+                result.addAll(index, images)
+                return EditResult(result, block.id, 0)
+            }
+            result[index] = block.copy(text = before)
+            result.addAll(index + 1, images + after)
+            return EditResult(result, after.id, 0)
+        }
+        result.addAll(index + 1, images)
+        return EditResult(result, blocks.getOrNull(index + 1)?.id ?: block.id, if (blocks.getOrNull(index + 1) == null) at else 0)
+    }
+
+    /** Quita un bloque (la imagen, desde su boton). */
+    fun removeBlock(blocks: List<EditorBlock>, id: Long): List<EditorBlock> = blocks.filterNot { it.id == id }
 
     private fun paste(blocks: List<EditorBlock>, index: Int, newText: String, caret: Int, ids: IdSource): EditResult {
         val block = blocks[index]

@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,9 +57,16 @@ fun EditorToolbar(
     markdownMode: Boolean,
     onToggleMarkdown: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Imagen desde la galeria; nulo = sin boton de imagen. */
+    onPickImage: (() -> Unit)? = null,
+    /** Imagen desde el portapapeles. */
+    onPasteImage: (() -> Unit)? = null,
+    /** Hay una subida en curso: el boton espera. */
+    imageBusy: Boolean = false,
 ) {
     val colors = NotesTheme.colors
     var linking by rememberSaveable { mutableStateOf(false) }
+    var imageMenu by remember { mutableStateOf(false) }
     val block = state?.focusedBlock
     val inline = block?.supportsInline == true
     val marks = state?.activeMarks().orEmpty()
@@ -110,6 +120,36 @@ fun EditorToolbar(
                         modifier = Modifier.padding(horizontal = spacing(3)),
                         maxLines = 1,
                     )
+                }
+            }
+            if (onPickImage != null) {
+                // Como pegar o soltar una imagen en la web: galeria o portapapeles.
+                Box {
+                    ToolButton(R.drawable.fa_image, R.string.editor_image, active = imageMenu, enabled = !imageBusy) {
+                        imageMenu = true
+                    }
+                    DropdownMenu(
+                        expanded = imageMenu,
+                        onDismissRequest = { imageMenu = false },
+                        containerColor = colors.surface,
+                    ) {
+                        DropdownMenuItem(
+                            text = { NotesText(stringResource(R.string.editor_image_gallery)) },
+                            onClick = {
+                                imageMenu = false
+                                onPickImage()
+                            },
+                        )
+                        if (onPasteImage != null) {
+                            DropdownMenuItem(
+                                text = { NotesText(stringResource(R.string.editor_image_paste)) },
+                                onClick = {
+                                    imageMenu = false
+                                    onPasteImage()
+                                },
+                            )
+                        }
+                    }
                 }
             }
             Box(Modifier.width(1.dp).height(24.dp).background(colors.border))

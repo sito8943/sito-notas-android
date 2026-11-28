@@ -7,7 +7,8 @@ package dev.sito8943.sitonotas.feature.notes.editor
  *
  * Reconoce lo mismo que el editor de la web (Tiptap: StarterKit + TaskList):
  * parrafos, encabezados, listas con viñetas y numeradas, tareas, citas,
- * bloques de codigo con vallas y separadores. Lo demas queda como
+ * bloques de codigo con vallas, separadores e imagenes solas en su linea
+ * ([BlockType.IMAGE]). Lo demas queda como
  * [BlockType.RAW] y se edita como texto.
  */
 object MarkdownDocument {
@@ -53,6 +54,9 @@ object MarkdownDocument {
      */
     fun parseLine(line: String, id: Long, previousIsText: Boolean = false): EditorBlock {
         if (previousIsText && SETEXT.matches(line)) return EditorBlock(id, BlockType.RAW, "", line)
+        IMAGE.matchEntire(line)?.let { m ->
+            return EditorBlock(id, BlockType.IMAGE, "", line, imageAlt = m.groupValues[1], imageUrl = m.groupValues[2])
+        }
         if (RAW_PATTERNS.any { it.containsMatchIn(line) }) return EditorBlock(id, BlockType.RAW, "", line)
 
         HEADING.matchEntire(line)?.let { m ->
@@ -113,8 +117,13 @@ object MarkdownDocument {
     private val BULLET = Regex("^([ \\t]*)([-*+])([ \\t]+|$)(.*)$")
     private val QUOTE = Regex("^( {0,3}>[ \\t]?)(.*)$")
     private val SETEXT = Regex("^ {0,3}(=+|-+)[ \\t]*$")
+    // grupos: 1 texto alternativo, 2 URL (titulo opcional entre comillas)
+    private val IMAGE = Regex("^ {0,3}!\\[([^\\]]*)]\\(<?([^)\\s<>]+)>?(?:[ \\t]+\"[^\"]*\")?\\)[ \\t]*$")
 
-    /** Tablas, HTML, imagenes solas en su linea, definiciones de enlace. */
+    /** Linea de una imagen para insertar, como `toMarkdownImage` de la web. */
+    fun imageLine(url: String): String = "![]($url)"
+
+    /** Tablas, HTML, imagenes con mas texto en la linea, definiciones de enlace. */
     private val RAW_PATTERNS = listOf(
         Regex("^\\s*\\|.*\\|\\s*$"),
         Regex("^\\s*</?[A-Za-z][A-Za-z0-9-]*(\\s[^>]*)?/?>"),

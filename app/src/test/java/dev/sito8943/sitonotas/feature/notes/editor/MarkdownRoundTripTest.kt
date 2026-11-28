@@ -70,7 +70,8 @@ class MarkdownRoundTripTest {
         roundTrip(markdown)
         val blocks = MarkdownDocument.parse(markdown)
         assertTrue(MarkdownDocument.hasRawContent(blocks))
-        assertEquals(6, blocks.count { it.type == BlockType.RAW })
+        assertEquals(5, blocks.count { it.type == BlockType.RAW })
+        assertEquals(1, blocks.count { it.type == BlockType.IMAGE })
     }
 
     @Test
