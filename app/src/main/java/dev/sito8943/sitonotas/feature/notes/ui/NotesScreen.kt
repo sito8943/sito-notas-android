@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.R
 import dev.sito8943.sitonotas.feature.notes.NoteFilters
-import dev.sito8943.sitonotas.feature.notes.NotesViewMode
 import dev.sito8943.sitonotas.feature.notes.NotesViewModel
 import dev.sito8943.sitonotas.ui.elements.DashedChip
 import dev.sito8943.sitonotas.ui.elements.FilterTab
@@ -50,16 +49,6 @@ fun NotesScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Page(
             title = stringResource(R.string.notes_title),
-            actions = {
-                val grid = state.viewMode == NotesViewMode.GRID
-                NotesIconButton(
-                    icon = if (grid) R.drawable.fa_list_ul else R.drawable.fa_table_cells_large,
-                    contentDescription = stringResource(
-                        if (grid) R.string.notes_view_list else R.string.notes_view_grid,
-                    ),
-                    onClick = { viewModel.setViewMode(if (grid) NotesViewMode.LIST else NotesViewMode.GRID) },
-                )
-            },
         ) {
             NotesSearchField(
                 value = filters.query,
@@ -128,7 +117,6 @@ fun NotesScreen(
                 )
                 else -> NotesGrid(
                     notes = state.notes,
-                    viewMode = state.viewMode,
                     onOpenNote = onOpenNote,
                     onReordered = viewModel::onReordered,
                     actions = { note ->

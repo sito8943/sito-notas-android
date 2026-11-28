@@ -61,11 +61,6 @@ class AppPreferences(context: Context) : SyncStateStore, PendingReorderStore {
         store.edit { it[DATA_OWNER] = userId }
     }
 
-    /** Vista de la lista de notas: nombre de `NotesViewMode` o nulo (lista). */
-    val notesViewMode: Flow<String?> = store.data.map { it[NOTES_VIEW_MODE] }
-
-    suspend fun setNotesViewMode(name: String?) = setOrRemove(NOTES_VIEW_MODE, name)
-
     /**
      * Consentimiento de analitica de uso, como `consent_notes` en la web
      * (`{analytics, version, decidedAt}`). Nulo = sin decidir (= no). Una
@@ -110,7 +105,6 @@ class AppPreferences(context: Context) : SyncStateStore, PendingReorderStore {
         val LANGUAGE_TAG = stringPreferencesKey("language_tag")
         val THEME_NAME = stringPreferencesKey("theme_name")
         val LAST_SYNC_AT = longPreferencesKey("last_sync_at")
-        val NOTES_VIEW_MODE = stringPreferencesKey("notes_view_mode")
         val PENDING_REORDER = stringPreferencesKey("pending_reorder")
         val CONSENT_ANALYTICS = booleanPreferencesKey("consent_analytics")
         val CONSENT_VERSION_KEY = intPreferencesKey("consent_version")

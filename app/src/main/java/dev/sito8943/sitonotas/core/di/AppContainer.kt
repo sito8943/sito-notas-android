@@ -169,7 +169,6 @@ class AppContainer(context: Context) {
     fun createNotesViewModel() = NotesViewModel(
         notes = noteRepository,
         categories = categoryRepository,
-        preferences = preferences,
         reorder = reorderSync::reorder,
     )
 

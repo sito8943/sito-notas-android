@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Vistas de la lista, cuenta (registro, contraseña), privacidad e importar/exportar. -->
 <resources>
-    <string name="notes_view_list">Ver como lista</string>
-    <string name="notes_view_grid">Ver como cuadrícula</string>
 
     <!-- Registro (sito-auth) -->
     <string name="auth_sign_up_title">Crear cuenta</string>

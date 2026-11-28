@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="notes_view_list">Show as list</string>
-    <string name="notes_view_grid">Show as grid</string>
 
     <string name="auth_sign_up_title">Create account</string>
     <string name="auth_sign_up_subtitle">One Sito account works for all Sito apps</string>

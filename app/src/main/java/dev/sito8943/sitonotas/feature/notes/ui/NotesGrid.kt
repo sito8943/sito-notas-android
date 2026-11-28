@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import dev.sito8943.sitonotas.feature.notes.Note
 import dev.sito8943.sitonotas.feature.notes.NoteListRules
-import dev.sito8943.sitonotas.feature.notes.NotesViewMode
 import dev.sito8943.sitonotas.ui.foundations.Radius
 import dev.sito8943.sitonotas.ui.foundations.spacing
 
@@ -31,14 +30,10 @@ import dev.sito8943.sitonotas.ui.foundations.spacing
  * Las tarjetas, como `NotesGrid` de la web: rejilla escalonada cuyas columnas
  * dependen del ancho, y mantener pulsado + arrastrar para reordenar (siempre,
  * tambien con busqueda o filtro: las ocultas conservan su hueco).
- *
- * En [NotesViewMode.LIST] es una columna; en [NotesViewMode.GRID], las de la web
- * para ese ancho con un minimo de dos (en un telefono la web daria una).
  */
 @Composable
 fun NotesGrid(
     notes: List<Note>,
-    viewMode: NotesViewMode,
     onOpenNote: (Long) -> Unit,
     onReordered: (List<Long>) -> Unit,
     actions: @Composable RowScope.(Note) -> Unit,
@@ -67,10 +62,8 @@ fun NotesGrid(
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val columns = when (viewMode) {
-            NotesViewMode.LIST -> 1
-            NotesViewMode.GRID -> maxOf(2, webColumns(maxWidth))
-        }
+        // Como la web: 1 columna en un telefono (<640), mas en tablet.
+        val columns = webColumns(maxWidth)
         LazyVerticalStaggeredGrid(
             columns = StaggeredGridCells.Fixed(columns),
             state = gridState,

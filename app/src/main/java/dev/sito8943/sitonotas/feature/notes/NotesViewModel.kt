@@ -3,7 +3,6 @@ package dev.sito8943.sitonotas.feature.notes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.sito8943.sitonotas.core.model.SearchText
-import dev.sito8943.sitonotas.core.settings.AppPreferences
 import dev.sito8943.sitonotas.feature.categories.Category
 import dev.sito8943.sitonotas.feature.categories.CategoryRepository
 import kotlinx.coroutines.FlowPreview
@@ -27,17 +26,6 @@ data class NoteFilters(
     val active: Boolean get() = query.isNotBlank() || categoryId != null || favoritesOnly
 }
 
-/** Como se pinta la lista. La web solo tiene la rejilla por ancho; la lista es de Android. */
-enum class NotesViewMode {
-    LIST,
-    GRID,
-    ;
-
-    companion object {
-        fun fromName(name: String?): NotesViewMode = entries.firstOrNull { it.name == name } ?: LIST
-    }
-}
-
 data class NotesUiState(
     val loading: Boolean = true,
     val notes: List<Note> = emptyList(),
@@ -46,14 +34,12 @@ data class NotesUiState(
     val categories: List<Category> = emptyList(),
     val counts: TabCounts = TabCounts(),
     val filters: NoteFilters = NoteFilters(),
-    val viewMode: NotesViewMode = NotesViewMode.LIST,
 )
 
 @OptIn(FlowPreview::class)
 class NotesViewModel(
     private val notes: NoteRepository,
     categories: CategoryRepository,
-    private val preferences: AppPreferences,
     /** Todas las notas activas en el orden nuevo (ids locales, de arriba abajo). */
     private val reorder: suspend (List<Long>) -> Unit,
 ) : ViewModel() {
@@ -75,8 +61,7 @@ class NotesViewModel(
         categories.observeCategories(),
         filters,
         searchQuery,
-        preferences.notesViewMode,
-    ) { all, cats, current, query, viewMode ->
+    ) { all, cats, current, query ->
         allIds = all.map { it.id }
         val counts = TabCounts.of(all)
         // Una pestaña sin notas queda deshabilitada; si era la elegida, vuelve a "Todas".
@@ -91,7 +76,6 @@ class NotesViewModel(
             categories = cats.sortedByUses(counts),
             counts = counts,
             filters = effective,
-            viewMode = NotesViewMode.fromName(viewMode),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), NotesUiState())
 
@@ -102,10 +86,6 @@ class NotesViewModel(
     }
 
     fun onFavoritesOnlyToggle() = filters.update { it.copy(favoritesOnly = !it.favoritesOnly) }
-
-    fun setViewMode(mode: NotesViewMode) {
-        viewModelScope.launch { preferences.setNotesViewMode(mode.name) }
-    }
 
     fun toggleFavorite(note: Note) {
         viewModelScope.launch { notes.setFavorite(note.id, !note.favorite) }
