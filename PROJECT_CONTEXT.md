@@ -10,7 +10,7 @@ Architecture, versions, auth and design system copied from `../SitoWallet`
 |---|---|
 | Package / namespace | `dev.sito8943.sitonotas` |
 | applicationId | `com.sito8943.notas` (debug: `.debug` suffix) |
-| Version | 0.1.0 (code 1), minSdk 26, target 36, compile 37 |
+| Version | 0.2.0 (code 2), minSdk 26, target 36, compile 37 |
 | BuildConfig | `API_BASE_URL` (notes API), `AUTH_BASE_URL` (sito-auth), `SHARE_BASE_URL` (public links; empty = `<api>/s/<token>`), `WEB_APP_URL` (`/note/<id>` links) |
 | Database | Room `sito-notas.db`, version 2, schema in `app/schemas/` (1→2: `client_id`) |
 
