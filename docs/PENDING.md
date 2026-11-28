@@ -2,13 +2,12 @@
 
 Actualizado el 2026-11-28 tras la 0.2.0.
 
-## Para publicar la 0.2.0
+## Estado
 
-1. **Desplegar el server** (`sito8943/sito-notes-server#23`) a la vez que la app:
-   `PATCH /notes/batch` y `/categories/batch` ahora devuelven `long[]` (la 0.2.0
-   entiende los dos formatos; la 0.1.0 no entiende el nuevo). Migraciones V8 y V9.
-2. Instalar el APK release firmado de la 0.2.0 (keystore `sitonotas-release.jks`
-   fuera de git; hacer copia de seguridad del `.jks` y `keystore.properties`).
+- 0.2.0 publicada el 2026-11-28 (APK en `dist/`), con `sito8943/sito-notes-server#23`
+  desplegado: tombstones, `clientId`, PATCH en lote con `long[]`, fechas UTC.
+- Hacer copia de seguridad de `sitonotas-release.jks` y `keystore.properties`
+  fuera de este Mac (sin ellos no se puede firmar la siguiente versión).
 
 ## Huecos conocidos
 
