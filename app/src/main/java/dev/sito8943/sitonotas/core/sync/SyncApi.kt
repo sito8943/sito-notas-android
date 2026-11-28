@@ -126,8 +126,10 @@ class NotesApi(private val client: RestClient) : NotesEndpoints {
     override suspend fun getDeletedCategories(since: String): DeletedIds? = deletedSince(CATEGORIES, since)
 
     /**
-     * El servidor anterior no tiene `/deleted`: lo toma por `/{id}` y responde
-     * 400 (no es un numero); otros despliegues, 404/405/501.
+     * El servidor anterior no tiene `/deleted`: lo toma por `/{id}` y, como su
+     * `GlobalExceptionHandler` no mapea el fallo de tipo, responde 500 (visto en
+     * produccion); otros despliegues, 400/404/405/501. Tratarlo como servidor
+     * anterior solo cuesta una descarga completa, que es segura.
      */
     private suspend fun deletedSince(base: String, since: String): DeletedIds? = try {
         client.get<DeletedIds>("$base/deleted?since=${encode(since)}", auth = true)
@@ -154,7 +156,7 @@ class NotesApi(private val client: RestClient) : NotesEndpoints {
     private companion object {
         const val NOTES = "/notes"
         const val CATEGORIES = "/categories"
-        val OLD_SERVER_STATUSES = setOf(400, 404, 405, 501)
+        val OLD_SERVER_STATUSES = setOf(400, 404, 405, 500, 501)
     }
 }
 
