@@ -78,4 +78,13 @@ interface CategoryDao {
      */
     @Query("UPDATE categories SET remote_id = NULL, dirty = 1, client_id = :clientId WHERE id = :id")
     suspend fun unlinkRemote(id: Long, clientId: String)
+
+    // --- Cambio de cuenta ----------------------------------------------------
+
+    /** Lo sincronizado (con `remote_id`): pertenece a la cuenta anterior. */
+    @Query("DELETE FROM categories WHERE remote_id IS NOT NULL")
+    suspend fun deleteSynced()
+
+    @Query("DELETE FROM categories")
+    suspend fun deleteAll()
 }

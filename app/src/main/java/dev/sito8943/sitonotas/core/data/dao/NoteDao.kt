@@ -147,4 +147,13 @@ interface NoteDao {
         """,
     )
     suspend fun deleteExpiredTrash(before: Long): Int
+
+    // --- Cambio de cuenta ----------------------------------------------------
+
+    /** Lo sincronizado (con `remote_id`): pertenece a la cuenta anterior. */
+    @Query("DELETE FROM notes WHERE remote_id IS NOT NULL")
+    suspend fun deleteSynced()
+
+    @Query("DELETE FROM notes")
+    suspend fun deleteAll()
 }

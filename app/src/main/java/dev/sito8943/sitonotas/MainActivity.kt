@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.core.settings.AppLanguage
 import dev.sito8943.sitonotas.core.settings.AppLocaleProvider
+import dev.sito8943.sitonotas.feature.sync.AccountSwitchDialog
 import dev.sito8943.sitonotas.navigation.NotesNavHost
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 import dev.sito8943.sitonotas.ui.theme.ResolvedTheme
@@ -36,6 +37,7 @@ class MainActivity : ComponentActivity() {
                 NotesTheme(preference = ThemePreference.fromName(themeName)) {
                     SyncSystemBarIcons(NotesTheme.resolved)
                     NotesNavHost(container = container)
+                    AccountSwitchDialog(container.syncCoordinator)
                 }
             }
         }

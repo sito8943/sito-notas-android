@@ -9,6 +9,7 @@ import dev.sito8943.sitonotas.core.data.NotesDatabase
 import dev.sito8943.sitonotas.core.data.VersionClock
 import dev.sito8943.sitonotas.core.network.RestClient
 import dev.sito8943.sitonotas.core.settings.AppPreferences
+import dev.sito8943.sitonotas.core.sync.AccountGuard
 import dev.sito8943.sitonotas.core.sync.NotesApi
 import dev.sito8943.sitonotas.core.sync.SyncCoordinator
 import dev.sito8943.sitonotas.core.sync.SyncEngine
@@ -88,6 +89,7 @@ class AppContainer(context: Context) {
             pendingStats = database.sync().observePendingStats(),
             sessionState = sessionRepository.state,
             scope = applicationScope,
+            accountGuard = AccountGuard(database, preferences),
         )
     }
 
