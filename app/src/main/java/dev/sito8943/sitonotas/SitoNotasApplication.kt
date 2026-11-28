@@ -20,5 +20,6 @@ class SitoNotasApplication : Application() {
         // La sincronizacion vive con el proceso, no con una pantalla: girar el
         // telefono o cambiar el idioma no debe cortarla a medias.
         container.syncCoordinator.start()
+        container.realtimeClient.start()
     }
 }

@@ -72,7 +72,19 @@ interface CategoryDao {
     @Query("UPDATE categories SET dirty = 0 WHERE id = :id AND local_version = :version")
     suspend fun markUpdated(id: Long, version: Long)
 
-    /** El servidor ya no la tiene: se vuelve a crear en la proxima subida. */
-    @Query("UPDATE categories SET remote_id = NULL, dirty = 1 WHERE id = :id")
-    suspend fun unlinkRemote(id: Long)
+    /**
+     * El servidor ya no la tiene: se vuelve a crear en la proxima subida, con
+     * un `client_id` nuevo (es otra alta, no un reintento de la anterior).
+     */
+    @Query("UPDATE categories SET remote_id = NULL, dirty = 1, client_id = :clientId WHERE id = :id")
+    suspend fun unlinkRemote(id: Long, clientId: String)
+
+    // --- Cambio de cuenta ----------------------------------------------------
+
+    /** Lo sincronizado (con `remote_id`): pertenece a la cuenta anterior. */
+    @Query("DELETE FROM categories WHERE remote_id IS NOT NULL")
+    suspend fun deleteSynced()
+
+    @Query("DELETE FROM categories")
+    suspend fun deleteAll()
 }

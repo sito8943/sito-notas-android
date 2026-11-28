@@ -155,4 +155,12 @@
     <string name="settings_language_es">Español</string>
     <string name="settings_language_en">English</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_sync_account_switch">Waiting for a decision about the other account\'s changes.</string>
+    <string name="account_switch_title">Changes from another account</string>
+    <plurals name="account_switch_message">
+        <item quantity="one">There is %d change from the previous account that was not uploaded. Upload it to this account or discard it?</item>
+        <item quantity="other">There are %d changes from the previous account that were not uploaded. Upload them to this account or discard them?</item>
+    </plurals>
+    <string name="account_switch_upload">Upload to this account</string>
+    <string name="account_switch_discard">Discard</string>
 </resources>

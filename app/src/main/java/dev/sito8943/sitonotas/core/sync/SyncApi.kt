@@ -1,5 +1,6 @@
 package dev.sito8943.sitonotas.core.sync
 
+import dev.sito8943.sitonotas.core.network.ApiException
 import dev.sito8943.sitonotas.core.network.RestClient
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -14,7 +15,12 @@ import kotlinx.serialization.json.Json
  * Se usa el CRUD por entidad, no `/sync/...` (igual que SitoWallet).
  */
 interface NotesEndpoints {
-    suspend fun getCategories(page: Int, pageSize: Int): PageResponse<RemoteCategory>
+    /**
+     * Categorias propias. [updatedSince] nulo = todas las activas (descarga
+     * completa); con cursor, las cambiadas desde entonces, papelera incluida
+     * (solo el servidor nuevo filtra categorias por `updatedAt`).
+     */
+    suspend fun getCategories(page: Int, pageSize: Int, updatedSince: String?): PageResponse<RemoteCategory>
 
     /**
      * Notas propias, activas y en papelera. [updatedSince] (inclusive) es el
@@ -23,22 +29,44 @@ interface NotesEndpoints {
     suspend fun getNotes(page: Int, pageSize: Int, updatedSince: String?): PageResponse<RemoteNote>
 
     suspend fun createCategories(bodies: List<CreateCategoryBody>): List<Long>
-    suspend fun updateCategories(bodies: List<UpdateCategoryBody>)
+    /**
+     * @return ids actualizados (servidor nuevo: los que no existen se saltan),
+     *   o nulo si el servidor solo devuelve un conteo (anterior: todos o 404).
+     */
+    suspend fun updateCategories(bodies: List<UpdateCategoryBody>): List<Long>?
     suspend fun updateCategory(body: UpdateCategoryBody)
     suspend fun deleteCategoriesPermanently(remoteIds: List<Long>)
 
     suspend fun createNotes(bodies: List<CreateNoteBody>): List<Long>
-    suspend fun updateNotes(bodies: List<UpdateNoteBody>)
+    /** Igual que [updateCategories]. */
+    suspend fun updateNotes(bodies: List<UpdateNoteBody>): List<Long>?
     suspend fun updateNote(body: UpdateNoteBody)
     suspend fun trashNotes(remoteIds: List<Long>)
     suspend fun restoreNotes(remoteIds: List<Long>)
     suspend fun deleteNotesPermanently(remoteIds: List<Long>)
+
+    /**
+     * Ids borrados para siempre desde [since] (`GET /notes/deleted`). Nulo =
+     * el servidor no tiene el endpoint (version anterior).
+     */
+    suspend fun getDeletedNotes(since: String): DeletedIds?
+
+    /** Igual que [getDeletedNotes] para `GET /categories/deleted`. */
+    suspend fun getDeletedCategories(since: String): DeletedIds?
 }
 
 class NotesApi(private val client: RestClient) : NotesEndpoints {
 
-    override suspend fun getCategories(page: Int, pageSize: Int): PageResponse<RemoteCategory> =
-        client.get("$CATEGORIES?page=$page&pageSize=$pageSize&sort=id&order=ASC", auth = true)
+    override suspend fun getCategories(
+        page: Int,
+        pageSize: Int,
+        updatedSince: String?,
+    ): PageResponse<RemoteCategory> {
+        val filter = updatedSince
+            ?.let { "&softDeleteScope=ALL&filters=" + encode("updatedAt>=$it") }
+            .orEmpty()
+        return client.get("$CATEGORIES?page=$page&pageSize=$pageSize&sort=id&order=ASC$filter", auth = true)
+    }
 
     /**
      * `softDeleteScope=ALL` trae tambien la papelera. El rango de fechas va por
@@ -60,9 +88,8 @@ class NotesApi(private val client: RestClient) : NotesEndpoints {
     override suspend fun createCategories(bodies: List<CreateCategoryBody>): List<Long> =
         idsOf("$CATEGORIES/batch", bodies)
 
-    override suspend fun updateCategories(bodies: List<UpdateCategoryBody>) {
-        client.patch<Int, List<UpdateCategoryBody>>("$CATEGORIES/batch", bodies)
-    }
+    override suspend fun updateCategories(bodies: List<UpdateCategoryBody>): List<Long>? =
+        updatedIdsOf(client.patchForRawBody("$CATEGORIES/batch", bodies))
 
     override suspend fun updateCategory(body: UpdateCategoryBody) {
         client.patch<Long, UpdateCategoryBody>("$CATEGORIES/${body.id}", body)
@@ -75,9 +102,8 @@ class NotesApi(private val client: RestClient) : NotesEndpoints {
     override suspend fun createNotes(bodies: List<CreateNoteBody>): List<Long> =
         idsOf("$NOTES/batch", bodies)
 
-    override suspend fun updateNotes(bodies: List<UpdateNoteBody>) {
-        client.patch<Int, List<UpdateNoteBody>>("$NOTES/batch", bodies)
-    }
+    override suspend fun updateNotes(bodies: List<UpdateNoteBody>): List<Long>? =
+        updatedIdsOf(client.patchForRawBody("$NOTES/batch", bodies))
 
     override suspend fun updateNote(body: UpdateNoteBody) {
         client.patch<Long, UpdateNoteBody>("$NOTES/${body.id}", body)
@@ -93,6 +119,20 @@ class NotesApi(private val client: RestClient) : NotesEndpoints {
 
     override suspend fun deleteNotesPermanently(remoteIds: List<Long>) {
         client.delete<Int, List<Long>>("$NOTES/permanent", remoteIds)
+    }
+
+    override suspend fun getDeletedNotes(since: String): DeletedIds? = deletedSince(NOTES, since)
+
+    override suspend fun getDeletedCategories(since: String): DeletedIds? = deletedSince(CATEGORIES, since)
+
+    /**
+     * El servidor anterior no tiene `/deleted`: lo toma por `/{id}` y responde
+     * 400 (no es un numero); otros despliegues, 404/405/501.
+     */
+    private suspend fun deletedSince(base: String, since: String): DeletedIds? = try {
+        client.get<DeletedIds>("$base/deleted?since=${encode(since)}", auth = true)
+    } catch (error: ApiException) {
+        if (error.status in OLD_SERVER_STATUSES) null else throw error
     }
 
     /**
@@ -114,7 +154,17 @@ class NotesApi(private val client: RestClient) : NotesEndpoints {
     private companion object {
         const val NOTES = "/notes"
         const val CATEGORIES = "/categories"
+        val OLD_SERVER_STATUSES = setOf(400, 404, 405, 501)
     }
+}
+
+/**
+ * Respuesta de un `PATCH /batch`: el servidor nuevo devuelve los ids que
+ * actualizo (`[1,2]`), el anterior un conteo (`2`). Nulo = conteo.
+ */
+internal fun updatedIdsOf(raw: String): List<Long>? {
+    val text = raw.trim()
+    return if (text.startsWith("[")) Json.decodeFromString(ListSerializer(Long.serializer()), text) else null
 }
 
 class OutdatedServerException(path: String, body: String) : Exception(

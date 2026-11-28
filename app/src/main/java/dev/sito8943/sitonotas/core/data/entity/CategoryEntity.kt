@@ -34,4 +34,10 @@ data class CategoryEntity(
     val dirty: Boolean = true,
     val purged: Boolean = false,
     @ColumnInfo(name = "local_version") val localVersion: Long = 0,
+    /**
+     * Identidad del alta generada aqui (UUID). Viaja como `clientId` en el
+     * POST: si la respuesta se pierde y el alta se repite, el servidor que lo
+     * soporte devuelve la fila ya creada en vez de duplicarla.
+     */
+    @ColumnInfo(name = "client_id") val clientId: String? = newClientId(),
 )

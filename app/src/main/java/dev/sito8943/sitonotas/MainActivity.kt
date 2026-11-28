@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sito8943.sitonotas.core.settings.AppLanguage
 import dev.sito8943.sitonotas.core.settings.AppLocaleProvider
+import dev.sito8943.sitonotas.feature.sync.AccountSwitchDialog
 import dev.sito8943.sitonotas.navigation.NotesNavHost
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 import dev.sito8943.sitonotas.ui.theme.ResolvedTheme
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
                         publicNoteToken = publicToken,
                         onPublicNoteOpened = { openedPublicToken.value = null },
                     )
+                    AccountSwitchDialog(container.syncCoordinator)
                 }
             }
         }
@@ -68,6 +70,13 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         container.syncCoordinator.requestSync()
+        container.realtimeClient.setForeground(true)
+    }
+
+    /** En segundo plano no hay socket: se reconecta al volver. */
+    override fun onStop() {
+        container.realtimeClient.setForeground(false)
+        super.onStop()
     }
 
     /** Iconos de las barras del sistema segun el tema de la app, no el del telefono. */

@@ -170,4 +170,13 @@
     <string name="settings_language_es">Español</string>
     <string name="settings_language_en">English</string>
     <string name="settings_version">Versión %1$s</string>
+    <string name="settings_sync_account_switch">Esperando a decidir qué hacer con los cambios de la otra cuenta.</string>
+    <string name="account_switch_title">Cambios de otra cuenta</string>
+    <plurals name="account_switch_message">
+        <item quantity="one">Hay %d cambio sin subir de la cuenta anterior. ¿Lo subes a esta cuenta o lo descartas?</item>
+        <item quantity="many">Hay %d cambios sin subir de la cuenta anterior. ¿Los subes a esta cuenta o los descartas?</item>
+        <item quantity="other">Hay %d cambios sin subir de la cuenta anterior. ¿Los subes a esta cuenta o los descartas?</item>
+    </plurals>
+    <string name="account_switch_upload">Subir a esta cuenta</string>
+    <string name="account_switch_discard">Descartar</string>
 </resources>

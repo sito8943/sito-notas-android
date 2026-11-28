@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.sito8943.sitonotas.core.sync.PendingReorderStore
+import dev.sito8943.sitonotas.core.sync.SyncCursor
 import dev.sito8943.sitonotas.core.sync.SyncStateStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -45,14 +46,20 @@ class AppPreferences(context: Context) : SyncStateStore, PendingReorderStore {
     }
 
     /**
-     * El cursor va por usuario: si entra otra cuenta en el mismo telefono, su
-     * primera descarga tiene que ser completa, no continuar la de la anterior.
+     * Los cursores van por usuario: si entra otra cuenta en el mismo telefono,
+     * su primera descarga tiene que ser completa, no continuar la de la anterior.
      */
-    override suspend fun pullCursor(userId: Long): String? =
-        store.data.first()[pullCursorKey(userId)]
+    override suspend fun cursor(userId: Long, kind: SyncCursor): String? =
+        store.data.first()[cursorKey(userId, kind)]
 
-    override suspend fun setPullCursor(userId: Long, cursor: String?) =
-        setOrRemove(pullCursorKey(userId), cursor)
+    override suspend fun setCursor(userId: Long, kind: SyncCursor, value: String?) =
+        setOrRemove(cursorKey(userId, kind), value)
+
+    override suspend fun dataOwner(): Long? = store.data.first()[DATA_OWNER]
+
+    override suspend fun setDataOwner(userId: Long) {
+        store.edit { it[DATA_OWNER] = userId }
+    }
 
     /** Vista de la lista de notas: nombre de `NotesViewMode` o nulo (lista). */
     val notesViewMode: Flow<String?> = store.data.map { it[NOTES_VIEW_MODE] }
@@ -112,6 +119,16 @@ class AppPreferences(context: Context) : SyncStateStore, PendingReorderStore {
         /** `CONSENT_VERSION` de la web. */
         const val CONSENT_VERSION = 1
 
-        fun pullCursorKey(userId: Long) = stringPreferencesKey("pull_cursor_$userId")
+        val DATA_OWNER = longPreferencesKey("data_owner")
+
+        /** `NOTES` conserva la clave de la version 1 (`pull_cursor_<id>`). */
+        fun cursorKey(userId: Long, kind: SyncCursor) = stringPreferencesKey(
+            when (kind) {
+                SyncCursor.NOTES -> "pull_cursor_$userId"
+                SyncCursor.CATEGORIES -> "categories_cursor_$userId"
+                SyncCursor.NOTE_TOMBSTONES -> "note_tombstones_cursor_$userId"
+                SyncCursor.CATEGORY_TOMBSTONES -> "category_tombstones_cursor_$userId"
+            },
+        )
     }
 }

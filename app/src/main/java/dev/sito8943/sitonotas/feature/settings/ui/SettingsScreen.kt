@@ -335,6 +335,7 @@ private fun syncStatusText(state: SettingsUiState): String = when (val status = 
     } else {
         stringResource(R.string.settings_sync_failed, status.message)
     }
+    is SyncStatus.AccountSwitch -> stringResource(R.string.settings_sync_account_switch)
 }
 
 /**
