@@ -1,6 +1,7 @@
 package dev.sito8943.sitonotas.core.di
 
 import android.content.Context
+import android.net.Uri
 import dev.sito8943.sitonotas.BuildConfig
 import dev.sito8943.sitonotas.core.auth.AndroidKeystoreSessionStore
 import dev.sito8943.sitonotas.core.auth.SessionRepository
@@ -23,12 +24,16 @@ import dev.sito8943.sitonotas.feature.categories.CategoryRepository
 import dev.sito8943.sitonotas.feature.notes.NoteEditorViewModel
 import dev.sito8943.sitonotas.feature.notes.NoteRepository
 import dev.sito8943.sitonotas.feature.notes.NotesViewModel
+import dev.sito8943.sitonotas.feature.backup.NotesBackup
+import dev.sito8943.sitonotas.feature.settings.BackupFiles
 import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
 import dev.sito8943.sitonotas.feature.trash.TrashViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.io.IOException
 
 /**
  * Unica raiz de construccion de dependencias, perezosa. Sin Hilt, igual que
@@ -124,10 +129,28 @@ class AppContainer(context: Context) {
 
     fun createTrashViewModel() = TrashViewModel(noteRepository)
 
+    val notesBackup: NotesBackup by lazy { NotesBackup(database, versionClock, json) }
+
+    private val backupFiles = object : BackupFiles {
+        override suspend fun read(uri: Uri): String = withContext(Dispatchers.IO) {
+            appContext.contentResolver.openInputStream(uri)?.use { it.reader().readText() }
+                ?: throw IOException("No se pudo abrir el archivo")
+        }
+
+        override suspend fun write(uri: Uri, text: String) = withContext(Dispatchers.IO) {
+            // "wt": trunca si el usuario eligio un archivo existente.
+            appContext.contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
+                ?: throw IOException("No se pudo escribir el archivo")
+        }
+    }
+
     fun createSettingsViewModel() = SettingsViewModel(
         session = sessionRepository,
         preferences = preferences,
         syncCoordinator = syncCoordinator,
         pendingCount = database.sync().observePendingStats(),
+        authApi = authApi,
+        backup = notesBackup,
+        files = backupFiles,
     )
 }
