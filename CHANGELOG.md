@@ -14,8 +14,9 @@
   conmigo" tab with unseen badge, public note screen and
   `share.notes.sito8943.com` deep links (`f286cdc`, `f92bf48`, `6015ae5`,
   `2521b35`).
-- Drag to reorder notes (`PATCH /notes/reorder`, queued offline), list/grid
-  view and counters on the filter tabs (`f2d0766`, `cb989ac`).
+- Drag to reorder notes (`PATCH /notes/reorder`, queued offline), columns by
+  width like the web (1 on a phone) and counters on the filter tabs
+  (`f2d0766`, `cb989ac`, `b944d11`).
 - Typo-tolerant search like the web (`string-similarity`) (`4a22a3e`).
 - Local import/export in the server `ExportNoteDTO` format (`b2a25a5`).
 - Settings: change password, anonymous-usage choice (`d1d0a12`).
