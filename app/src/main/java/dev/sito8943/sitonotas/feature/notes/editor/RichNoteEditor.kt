@@ -20,7 +20,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -48,6 +52,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.sito8943.sitonotas.R
+import dev.sito8943.sitonotas.core.network.ImageLoader
 import dev.sito8943.sitonotas.ui.elements.FaIcon
 import dev.sito8943.sitonotas.ui.elements.NotesText
 import dev.sito8943.sitonotas.ui.foundations.Radius
@@ -67,26 +72,41 @@ fun RichNoteEditor(
     state: RichEditorState,
     placeholder: String,
     modifier: Modifier = Modifier,
+    imageLoader: ImageLoader? = null,
 ) {
     val requesters = remember(state) { mutableMapOf<Long, FocusRequester>() }
     val blocks = state.blocks
+    var viewing by remember { mutableStateOf<EditorBlock?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         blocks.forEachIndexed { index, block ->
-            val requester = requesters.getOrPut(block.id) { FocusRequester() }
-            EditorBlockRow(
-                block = block,
-                value = state.valueOf(block),
-                focused = state.focusedId == block.id,
-                placeholder = if (blocks.size == 1 && index == 0) placeholder else null,
-                requester = requester,
-                onValueChange = { state.onValueChange(block.id, it) },
-                // Se recuerda el ultimo bloque con foco aunque lo pierda un
-                // instante: la barra de formato actua sobre el.
-                onFocus = { focused -> if (focused) state.focusedId = block.id },
-                onToggleChecked = { state.toggleChecked(block.id) },
-                modifier = Modifier.padding(top = topSpacing(block, blocks.getOrNull(index - 1))),
-            )
+            key(block.id) {
+                if (block.type == BlockType.IMAGE && block.imageUrl != null && imageLoader != null) {
+                    NoteImageBlock(
+                        url = block.imageUrl,
+                        alt = block.imageAlt,
+                        loader = imageLoader,
+                        onOpen = { viewing = block },
+                        onRemove = { state.removeBlock(block.id) },
+                        modifier = Modifier.padding(vertical = spacing(2)),
+                    )
+                } else {
+                    val requester = requesters.getOrPut(block.id) { FocusRequester() }
+                    EditorBlockRow(
+                        block = block,
+                        value = state.valueOf(block),
+                        focused = state.focusedId == block.id,
+                        placeholder = if (blocks.size == 1 && index == 0) placeholder else null,
+                        requester = requester,
+                        onValueChange = { state.onValueChange(block.id, it) },
+                        // Se recuerda el ultimo bloque con foco aunque lo pierda un
+                        // instante: la barra de formato actua sobre el.
+                        onFocus = { focused -> if (focused) state.focusedId = block.id },
+                        onToggleChecked = { state.toggleChecked(block.id) },
+                        modifier = Modifier.padding(top = topSpacing(block, blocks.getOrNull(index - 1))),
+                    )
+                }
+            }
         }
         // Tocar bajo el texto lleva el cursor al final, como en la web.
         Box(
@@ -97,6 +117,11 @@ fun RichNoteEditor(
                     state.focusEnd()
                 },
         )
+    }
+
+    val open = viewing
+    if (open?.imageUrl != null && imageLoader != null) {
+        ImageViewerDialog(url = open.imageUrl, alt = open.imageAlt, loader = imageLoader, onDismiss = { viewing = null })
     }
 
     val request = state.focusRequest
