@@ -83,7 +83,13 @@ import dev.sito8943.sitonotas.ui.templates.EmptyState
 import dev.sito8943.sitonotas.ui.theme.NotesTheme
 
 @Composable
-fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit, imageLoader: ImageLoader? = null) {
+fun NoteEditorScreen(
+    viewModel: NoteEditorViewModel,
+    onBack: () -> Unit,
+    imageLoader: ImageLoader? = null,
+    /** Opens sharing for the note (local id; null while a new note is unsaved). */
+    onShare: ((Long?) -> Unit)? = null,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = NotesTheme.colors
     var pickingCategories by rememberSaveable { mutableStateOf(false) }
@@ -150,6 +156,12 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit, imageLo
             onBack = leave,
             onToggleFavorite = viewModel::toggleFavorite,
             onTrash = { confirmTrash = true },
+            onShare = onShare?.let { share ->
+                {
+                    viewModel.flush()
+                    share(viewModel.state.value.noteId)
+                }
+            },
         )
 
         when {
@@ -231,6 +243,7 @@ private fun EditorHeader(
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
     onTrash: () -> Unit,
+    onShare: (() -> Unit)? = null,
 ) {
     val colors = NotesTheme.colors
     Column {
@@ -276,6 +289,13 @@ private fun EditorHeader(
                     onClick = onToggleFavorite,
                     tint = if (favorite) colors.accent else colors.textMuted,
                 )
+                if (onShare != null) {
+                    NotesIconButton(
+                        icon = R.drawable.fa_share_nodes,
+                        contentDescription = stringResource(R.string.share_action),
+                        onClick = onShare,
+                    )
+                }
                 NotesIconButton(
                     icon = R.drawable.fa_trash,
                     contentDescription = stringResource(R.string.note_trash),

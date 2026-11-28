@@ -22,7 +22,6 @@ Anotado el 2026-11-24 para retomar el 2026-11-25.
 
 ## Funciones de la web que faltan en Android
 
-- Compartir notas con usuarios, enlaces públicos, "compartidas conmigo".
 - Reordenar notas arrastrando (el orden manual se ve, no se cambia).
 - Vistas configurables (columnas/cuadrícula, view-configs).
 - Búsqueda tolerante a errores (fuzzy).

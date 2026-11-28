@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sharing (web apps/notes/src/lang/en/_pages.json: share, shared, publicNote). -->
+<resources>
+    <string name="tab_shared">Shared</string>
+
+    <string name="share_action">Share</string>
+    <string name="share_title">Share “%1$s”</string>
+    <string name="share_email_label">Person\'s email</string>
+    <string name="share_email_placeholder">email@example.com</string>
+    <string name="share_submit">Share</string>
+    <string name="share_hint">Only with people who already use Sito Notas. Choose whether they can view or edit.</string>
+    <string name="share_people">People with access</string>
+    <string name="share_only_you">Only you can access this note.</string>
+    <string name="share_remove">Remove access for %1$s</string>
+    <string name="share_permission_label">Permission</string>
+    <string name="share_permission_for">%1$s\'s permission</string>
+    <string name="share_permission_read">Can view</string>
+    <string name="share_permission_edit">Can edit</string>
+    <string name="share_send_copy">Send a copy</string>
+    <string name="share_error_not_found">No Sito Notas user has that email</string>
+    <string name="share_error_self">You can\'t share a note with yourself</string>
+    <string name="share_error_already_shared">This note is already shared with that person</string>
+    <string name="share_link_title">General access</string>
+    <string name="share_link_label">Who can open the note</string>
+    <string name="share_link_restricted">Restricted</string>
+    <string name="share_link_public">Anyone with the link</string>
+    <string name="share_link_restricted_hint">Only the people with access can open it.</string>
+    <string name="share_link_public_hint">Anyone with the link can read it, without an account. They can\'t edit it.</string>
+    <string name="share_link_copy">Copy link</string>
+    <string name="share_link_copied">Link copied</string>
+    <string name="share_link_send">Send link</string>
+    <string name="share_link_turned_off">Public link turned off. Links shared before no longer work.</string>
+    <string name="share_no_account">Sharing a note needs an account. Sign in from Settings.</string>
+    <string name="share_not_synced">This note is not on the server yet. Sync and try again.</string>
+
+    <string name="shared_title">Shared with me</string>
+    <string name="shared_description">Notes other people shared with you.</string>
+    <string name="shared_empty">Nobody has shared a note with you yet.</string>
+    <string name="shared_from">From %1$s</string>
+    <string name="shared_read_only">Read only</string>
+    <string name="shared_can_edit">You can edit</string>
+    <string name="shared_needs_account">Sign in to see the notes other people shared with you.</string>
+    <string name="shared_saving">Saving…</string>
+    <string name="shared_saved">Saved</string>
+    <string name="shared_not_saved">Not saved</string>
+
+    <string name="public_note_by">By %1$s</string>
+    <string name="public_note_updated">Edited %1$s</string>
+    <string name="public_note_not_found">This link doesn\'t exist or was turned off</string>
+
+    <string name="sharing_error_offline">No connection. Sharing needs the internet.</string>
+    <string name="sharing_error_not_found">This note no longer exists or you lost access to it.</string>
+    <string name="sharing_error_unknown">Something went wrong. Try again.</string>
+    <string name="sharing_retry">Retry</string>
+    <string name="sharing_sign_in">Sign in</string>
+</resources>
