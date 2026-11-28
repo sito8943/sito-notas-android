@@ -1,7 +1,10 @@
 package dev.sito8943.sitonotas
 
 import android.graphics.Color as AndroidColor
+import android.content.Intent
 import android.os.Bundle
+import dev.sito8943.sitonotas.feature.sharing.ShareLinks
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -35,10 +38,30 @@ class MainActivity : ComponentActivity() {
             AppLocaleProvider(language = AppLanguage.fromTag(languageTag)) {
                 NotesTheme(preference = ThemePreference.fromName(themeName)) {
                     SyncSystemBarIcons(NotesTheme.resolved)
-                    NotesNavHost(container = container)
+                    val publicToken by openedPublicToken.collectAsStateWithLifecycle()
+                    NotesNavHost(
+                        container = container,
+                        publicNoteToken = publicToken,
+                        onPublicNoteOpened = { openedPublicToken.value = null },
+                    )
                 }
             }
         }
+        if (savedInstanceState == null) readPublicLink(intent)
+    }
+
+    /** Token de un enlace publico abierto con la app, hasta que la navegacion lo consume. */
+    private val openedPublicToken = MutableStateFlow<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        readPublicLink(intent)
+    }
+
+    private fun readPublicLink(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val url = intent.dataString ?: return
+        ShareLinks.tokenOf(url, BuildConfig.SHARE_BASE_URL)?.let { openedPublicToken.value = it }
     }
 
     /** Volver a primer plano es un disparador de sincronizacion. */

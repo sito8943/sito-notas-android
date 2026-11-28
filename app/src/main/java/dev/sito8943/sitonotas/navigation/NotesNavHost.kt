@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.annotation.DrawableRes
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -42,6 +44,15 @@ import dev.sito8943.sitonotas.feature.notes.ui.NoteEditorScreen
 import dev.sito8943.sitonotas.feature.notes.ui.NotesScreen
 import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
 import dev.sito8943.sitonotas.feature.settings.ui.SettingsScreen
+import dev.sito8943.sitonotas.feature.sharing.PublicNoteRedirect
+import dev.sito8943.sitonotas.feature.sharing.PublicNoteViewModel
+import dev.sito8943.sitonotas.feature.sharing.ShareNoteViewModel
+import dev.sito8943.sitonotas.feature.sharing.SharedNoteViewModel
+import dev.sito8943.sitonotas.feature.sharing.SharedNotesViewModel
+import dev.sito8943.sitonotas.feature.sharing.ui.PublicNoteScreen
+import dev.sito8943.sitonotas.feature.sharing.ui.ShareNoteScreen
+import dev.sito8943.sitonotas.feature.sharing.ui.SharedNoteScreen
+import dev.sito8943.sitonotas.feature.sharing.ui.SharedNotesScreen
 import dev.sito8943.sitonotas.feature.trash.TrashViewModel
 import dev.sito8943.sitonotas.feature.trash.ui.TrashScreen
 import dev.sito8943.sitonotas.ui.elements.FaIcon
@@ -53,6 +64,7 @@ private data class Tab(val route: Any, val type: KClass<*>, @param:DrawableRes v
 // Mismos iconos que `AppBottomNavigation` / `AppSidebar` de la web.
 private val tabs = listOf(
     Tab(NotesRoute, NotesRoute::class, R.drawable.fa_note_sticky, R.string.tab_notes),
+    Tab(SharedRoute, SharedRoute::class, R.drawable.fa_user_group, R.string.tab_shared),
     Tab(CategoriesRoute, CategoriesRoute::class, R.drawable.fa_tag, R.string.tab_categories),
     Tab(TrashRoute, TrashRoute::class, R.drawable.fa_trash, R.string.tab_trash),
     Tab(SettingsRoute, SettingsRoute::class, R.drawable.fa_gear, R.string.tab_settings),
@@ -62,6 +74,9 @@ private val tabs = listOf(
 fun NotesNavHost(
     container: AppContainer,
     navController: NavHostController = rememberNavController(),
+    /** Token of a public note link opened with the app (deep link). */
+    publicNoteToken: String? = null,
+    onPublicNoteOpened: () -> Unit = {},
 ) {
     // La sesion se restaura sincrona en Application.onCreate: el destino
     // inicial ya se conoce y no hay que componer el login para luego saltar.
@@ -77,6 +92,17 @@ fun NotesNavHost(
     val backStack by navController.currentBackStackEntryAsState()
     val destination = backStack?.destination
     val showTabs = tabs.any { tab -> destination?.hierarchy?.any { it.hasRoute(tab.type) } == true }
+    val unseenShared by container.unseenShares.count.collectAsStateWithLifecycle()
+
+    // Badge of "Compartidas": refreshed on every screen change (best effort, online).
+    LaunchedEffect(destination?.route) { container.unseenShares.refresh() }
+
+    LaunchedEffect(publicNoteToken) {
+        if (publicNoteToken != null) {
+            navController.navigate(PublicNoteRoute(publicNoteToken))
+            onPublicNoteOpened()
+        }
+    }
 
     Scaffold(
         containerColor = NotesTheme.colors.background,
@@ -92,12 +118,22 @@ fun NotesNavHost(
                             selected = selected,
                             onClick = { navController.navigateToTab(tab.route) },
                             icon = {
-                                FaIcon(
-                                    tab.icon,
-                                    contentDescription = null,
-                                    tint = if (selected) NotesTheme.colors.accent else NotesTheme.colors.textMuted,
-                                    size = 20.dp,
-                                )
+                                BadgedBox(
+                                    badge = {
+                                        if (tab.route == SharedRoute && unseenShared > 0) {
+                                            Badge(containerColor = NotesTheme.colors.accent) {
+                                                androidx.compose.material3.Text(unseenShared.toString())
+                                            }
+                                        }
+                                    },
+                                ) {
+                                    FaIcon(
+                                        tab.icon,
+                                        contentDescription = null,
+                                        tint = if (selected) NotesTheme.colors.accent else NotesTheme.colors.textMuted,
+                                        size = 20.dp,
+                                    )
+                                }
                             },
                             label = {
                                 androidx.compose.material3.Text(
@@ -159,7 +195,56 @@ fun NotesNavHost(
                     val viewModel: NoteEditorViewModel = viewModel {
                         container.createNoteEditorViewModel(route.noteId)
                     }
-                    NoteEditorScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                    NoteEditorScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                        onShare = { navController.navigate(ShareNoteRoute(it)) },
+                    )
+                }
+                composable<ShareNoteRoute> { entry ->
+                    val route = entry.toRoute<ShareNoteRoute>()
+                    val viewModel: ShareNoteViewModel = viewModel { container.createShareNoteViewModel(route.noteId) }
+                    ShareNoteScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                }
+                composable<SharedRoute> {
+                    val viewModel: SharedNotesViewModel = viewModel { container.createSharedNotesViewModel() }
+                    SharedNotesScreen(
+                        viewModel = viewModel,
+                        onOpenNote = { navController.navigate(SharedNoteRoute(it)) },
+                        onSignIn = { navController.navigate(SignInRoute) },
+                    )
+                }
+                composable<SharedNoteRoute> { entry ->
+                    val route = entry.toRoute<SharedNoteRoute>()
+                    val viewModel: SharedNoteViewModel = viewModel { container.createSharedNoteViewModel(route.remoteId) }
+                    SharedNoteScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                        onOpenLocal = { localId ->
+                            navController.navigate(NoteEditorRoute(localId)) {
+                                popUpTo<SharedNoteRoute> { inclusive = true }
+                            }
+                        },
+                    )
+                }
+                composable<PublicNoteRoute> { entry ->
+                    val route = entry.toRoute<PublicNoteRoute>()
+                    val viewModel: PublicNoteViewModel = viewModel { container.createPublicNoteViewModel(route.token) }
+                    PublicNoteScreen(
+                        viewModel = viewModel,
+                        onBack = {
+                            if (!navController.popBackStack()) navController.navigate(NotesRoute)
+                        },
+                        onRedirect = { redirect ->
+                            val target: Any = when (redirect) {
+                                is PublicNoteRedirect.Local -> NoteEditorRoute(redirect.localId)
+                                is PublicNoteRedirect.Shared -> SharedNoteRoute(redirect.remoteId)
+                            }
+                            navController.navigate(target) {
+                                popUpTo<PublicNoteRoute> { inclusive = true }
+                            }
+                        },
+                    )
                 }
                 composable<CategoriesRoute> {
                     val viewModel: CategoriesViewModel = viewModel { container.createCategoriesViewModel() }
