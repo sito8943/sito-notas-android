@@ -4,9 +4,11 @@ import android.content.Context
 import dev.sito8943.sitonotas.BuildConfig
 import dev.sito8943.sitonotas.core.auth.AndroidKeystoreSessionStore
 import dev.sito8943.sitonotas.core.auth.SessionRepository
+import dev.sito8943.sitonotas.core.auth.SessionState
 import dev.sito8943.sitonotas.core.auth.SessionStore
 import dev.sito8943.sitonotas.core.data.NotesDatabase
 import dev.sito8943.sitonotas.core.data.VersionClock
+import dev.sito8943.sitonotas.core.network.ImageLoader
 import dev.sito8943.sitonotas.core.network.RestClient
 import dev.sito8943.sitonotas.core.settings.AppPreferences
 import dev.sito8943.sitonotas.core.sync.NotesApi
@@ -21,6 +23,9 @@ import dev.sito8943.sitonotas.feature.categories.CategoryRepository
 import dev.sito8943.sitonotas.feature.notes.NoteEditorViewModel
 import dev.sito8943.sitonotas.feature.notes.NoteRepository
 import dev.sito8943.sitonotas.feature.notes.NotesViewModel
+import dev.sito8943.sitonotas.feature.notes.images.NoteImagePreparer
+import dev.sito8943.sitonotas.feature.notes.images.NoteImageSupport
+import dev.sito8943.sitonotas.feature.notes.images.NoteImagesApi
 import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
 import dev.sito8943.sitonotas.feature.trash.TrashViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -91,6 +96,19 @@ class AppContainer(context: Context) {
         )
     }
 
+    /** Imagenes de las notas (publicas): cache HTTP en disco + memoria. */
+    val imageLoader: ImageLoader by lazy { ImageLoader(appContext.cacheDir) }
+
+    private val noteImageSupport: NoteImageSupport by lazy {
+        val preparer = NoteImagePreparer(appContext.contentResolver)
+        NoteImageSupport(
+            uploader = NoteImagesApi(notesClient, BuildConfig.API_BASE_URL),
+            prepare = preparer::prepare,
+            isSignedIn = { sessionRepository.state.value is SessionState.Authenticated },
+            requestSync = { syncCoordinator.requestSync() },
+        )
+    }
+
     fun createAuthViewModel() = AuthViewModel(authApi, sessionRepository)
 
     fun createNotesViewModel() = NotesViewModel(noteRepository, categoryRepository)
@@ -100,6 +118,7 @@ class AppContainer(context: Context) {
         notes = noteRepository,
         categories = categoryRepository,
         saveScope = applicationScope,
+        images = noteImageSupport,
     )
 
     fun createCategoriesViewModel() = CategoriesViewModel(categoryRepository)
