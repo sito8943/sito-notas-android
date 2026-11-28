@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +24,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.sito8943.sitonotas.R
 import dev.sito8943.sitonotas.ui.foundations.BorderWidth
 import dev.sito8943.sitonotas.ui.foundations.Radius
@@ -113,11 +116,13 @@ fun FilterTab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    /** Contador tras la etiqueta (`tabs-tab-count`); oculto si es 0 o nulo. */
+    count: Int? = null,
 ) {
     val colors = NotesTheme.colors
     val container = if (selected) colors.primary else colors.surface
     val content = if (selected) colors.textInverted else colors.textMuted
-    Box(
+    Row(
         modifier = modifier
             .heightIn(min = 36.dp)
             .clip(Radius.mdShape)
@@ -126,12 +131,39 @@ fun FilterTab(
             .clickable(enabled = enabled, role = Role.Tab, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(horizontal = spacing(3)),
-        contentAlignment = Alignment.Center,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         NotesText(
             text = label,
             style = NotesTheme.typography.small,
             color = if (enabled) content else content.copy(alpha = 0.4f),
+            maxLines = 1,
+        )
+        if (count != null && count > 0) CountBadge(count)
+    }
+}
+
+/** Pastilla roja con el numero, como `tabs-tab-count` de la web. */
+@Composable
+private fun CountBadge(count: Int) {
+    Box(
+        modifier = Modifier
+            .heightIn(min = 20.dp)
+            .widthIn(min = 20.dp)
+            .clip(CircleShape)
+            .background(NotesTheme.colors.negative)
+            .padding(horizontal = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        NotesText(
+            text = count.toString(),
+            style = NotesTheme.typography.caption.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFeatureSettings = "tnum",
+            ),
+            color = Color.White,
             maxLines = 1,
         )
     }

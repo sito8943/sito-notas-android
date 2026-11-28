@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import dev.sito8943.sitonotas.R
+import dev.sito8943.sitonotas.feature.auth.AuthMode
 import dev.sito8943.sitonotas.feature.auth.AuthUiState
 import dev.sito8943.sitonotas.ui.elements.ButtonColor
 import dev.sito8943.sitonotas.ui.elements.ButtonVariant
@@ -35,8 +36,9 @@ import dev.sito8943.sitonotas.ui.theme.NotesTheme
 import dev.sito8943.sitonotas.ui.theme.ThemePreference
 
 /**
- * Pantalla de login de sito-auth. Sin estado propio: recibe el `AuthUiState` y
- * emite callbacks. No hay registro: la cuenta se crea en la web.
+ * Pantalla de login y registro de sito-auth. Sin estado propio: recibe el
+ * `AuthUiState` y emite callbacks. El registro pide correo, contraseña y su
+ * repeticion, como `AuthSignUpView` de la web.
  */
 @Composable
 fun AuthScreen(
@@ -47,8 +49,11 @@ fun AuthScreen(
     onForgotPassword: () -> Unit,
     onContinueWithoutAccount: () -> Unit,
     modifier: Modifier = Modifier,
+    onConfirmPasswordChange: (String) -> Unit = {},
+    onToggleMode: () -> Unit = {},
 ) {
     val colors = NotesTheme.colors
+    val signUp = state.mode == AuthMode.SIGN_UP
 
     Column(
         modifier = modifier
@@ -79,12 +84,12 @@ fun AuthScreen(
         }
 
         NotesText(
-            text = stringResource(R.string.auth_sign_in_title),
+            text = stringResource(if (signUp) R.string.auth_sign_up_title else R.string.auth_sign_in_title),
             style = NotesTheme.typography.title,
             modifier = Modifier.padding(top = spacing(4)),
         )
         NotesText(
-            text = stringResource(R.string.auth_sign_in_subtitle),
+            text = stringResource(if (signUp) R.string.auth_sign_up_subtitle else R.string.auth_sign_in_subtitle),
             color = colors.textMuted,
             modifier = Modifier.padding(bottom = spacing(2)),
         )
@@ -107,10 +112,26 @@ fun AuthScreen(
             label = stringResource(R.string.auth_password),
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.loading,
-            error = stringResource(R.string.auth_error_password_required)
-                .takeIf { state.fieldErrors.password },
-            imeAction = ImeAction.Done,
+            error = when {
+                state.fieldErrors.password -> stringResource(R.string.auth_error_password_required)
+                state.fieldErrors.passwordTooShort -> stringResource(R.string.auth_error_password_too_short)
+                else -> null
+            },
+            imeAction = if (signUp) ImeAction.Next else ImeAction.Done,
         )
+
+        if (signUp) {
+            NotesPasswordField(
+                value = state.confirmPassword,
+                onValueChange = onConfirmPasswordChange,
+                label = stringResource(R.string.auth_confirm_password),
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.loading,
+                error = stringResource(R.string.auth_error_passwords_differ)
+                    .takeIf { state.fieldErrors.confirmPassword },
+                imeAction = ImeAction.Done,
+            )
+        }
 
         state.error?.let { error ->
             NotesText(
@@ -130,7 +151,7 @@ fun AuthScreen(
         }
 
         NotesButton(
-            text = stringResource(R.string.auth_sign_in),
+            text = stringResource(if (signUp) R.string.auth_sign_up else R.string.auth_sign_in),
             onClick = onSubmit,
             modifier = Modifier
                 .fillMaxWidth()
@@ -139,9 +160,20 @@ fun AuthScreen(
             enabled = state.canSubmitSignIn,
         )
 
+        if (!signUp) {
+            NotesButton(
+                text = stringResource(R.string.auth_forgot_password),
+                onClick = onForgotPassword,
+                modifier = Modifier.fillMaxWidth(),
+                variant = ButtonVariant.TEXT,
+                color = ButtonColor.PRIMARY,
+                enabled = !state.loading,
+            )
+        }
+
         NotesButton(
-            text = stringResource(R.string.auth_forgot_password),
-            onClick = onForgotPassword,
+            text = stringResource(if (signUp) R.string.auth_to_sign_in else R.string.auth_to_sign_up),
+            onClick = onToggleMode,
             modifier = Modifier.fillMaxWidth(),
             variant = ButtonVariant.TEXT,
             color = ButtonColor.PRIMARY,

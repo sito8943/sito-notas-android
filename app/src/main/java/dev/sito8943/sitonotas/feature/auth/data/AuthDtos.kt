@@ -19,6 +19,20 @@ data class SignInRequest(
     @EncodeDefault val rememberMe: Boolean = true,
 )
 
+/** `RegisterRequest`: el servidor deriva el usuario del correo. */
+@Serializable
+data class SignUpRequest(
+    val email: String,
+    val password: String,
+)
+
+/** `ChangePasswordRequest`. */
+@Serializable
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String,
+)
+
 @Serializable
 data class RefreshRequest(
     val refreshToken: String,

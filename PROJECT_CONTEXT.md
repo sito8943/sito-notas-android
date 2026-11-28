@@ -28,6 +28,7 @@ Architecture, versions, auth and design system copied from `../SitoWallet`
 | `feature/auth` | Sign in, forgot password, continue without account (no sign-up) |
 | `feature/notes` | List (search, favorites/category filters), editor with autosave. `editor/`: rich-text editor over Markdown (one block per line, original syntax kept byte for byte), formatting toolbar, Markdown source mode |
 | `feature/categories`, `feature/trash`, `feature/settings` | Their screens and ViewModels |
+| `feature/backup` | Local import/export (Room) in the server `ExportNoteDTO` format, via SAF from Settings |
 | `ui/` | Design system: tokens ported from the web (`apps/notes/src/styles/global.css`), Font Awesome icons (`FaIcon`, `res/drawable/fa_*.xml`), Poppins headings |
 | `navigation/` | Single NavHost with a bottom bar on the 4 tabs |
 
@@ -69,6 +70,13 @@ pushed); otherwise the server overwrites it. `dirty` is cleared only if
 sign-in, app foreground (`MainActivity.onStart`), manual "Sincronizar ahora".
 A mutex serializes runs. Failures are shown (offline vs server) and retried on
 the next trigger. No WorkManager.
+
+Extra steps: `SyncEngine(extraSteps: List<SyncStep>)` runs them after pushing
+notes and before pulling them. `ReorderSync` is one: a drag-reorder sets
+`position = index` locally (not dirty), stores the local ids in DataStore
+(`pending_reorder`) and asks for a sync; the step maps them to `remoteId`s,
+sends `PATCH /notes/reorder` (all active notes, top first) and clears the
+queue only if no newer order arrived meanwhile.
 
 ## Known gaps
 

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vistas de la lista, cuenta (registro, contraseña), privacidad e importar/exportar. -->
+<resources>
+    <string name="notes_view_list">Ver como lista</string>
+    <string name="notes_view_grid">Ver como cuadrícula</string>
+
+    <!-- Registro (sito-auth) -->
+    <string name="auth_sign_up_title">Crear cuenta</string>
+    <string name="auth_sign_up_subtitle">La misma cuenta de Sito sirve para todas sus apps</string>
+    <string name="auth_sign_up">Crear cuenta</string>
+    <string name="auth_to_sign_up">¿No tienes cuenta? Regístrate</string>
+    <string name="auth_to_sign_in">¿Ya tienes cuenta? Inicia sesión</string>
+    <string name="auth_confirm_password">Repetir contraseña</string>
+    <string name="auth_error_password_too_short">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="auth_error_passwords_differ">No coinciden las contraseñas</string>
+    <string name="auth_error_email_taken">Ya existe una cuenta con este correo electrónico</string>
+    <string name="auth_error_sign_up_disabled">El registro está desactivado en el servidor. Crea la cuenta más adelante o pide acceso.</string>
+    <string name="auth_error_too_many">Demasiados intentos. Espera un momento antes de volver a intentarlo.</string>
+    <string name="auth_sign_up_done">Cuenta creada. Revisa tu correo para confirmarla.</string>
+
+    <!-- Cambiar contraseña -->
+    <string name="settings_security">Seguridad</string>
+    <string name="settings_current_password">Contraseña actual</string>
+    <string name="settings_new_password">Contraseña nueva</string>
+    <string name="settings_repeat_password">Repetir contraseña</string>
+    <string name="settings_change_password">Cambiar contraseña</string>
+    <string name="settings_password_updated">Contraseña actualizada. Inicia sesión de nuevo.</string>
+    <string name="settings_password_wrong_current">La contraseña actual es incorrecta</string>
+    <string name="settings_password_failed">No se pudo cambiar la contraseña: %1$s</string>
+
+    <!-- Privacidad -->
+    <string name="settings_privacy">Privacidad</string>
+    <string name="settings_privacy_label">Estadísticas de uso anónimas</string>
+    <string name="settings_privacy_allowed">Permitidas</string>
+    <string name="settings_privacy_denied">No permitidas</string>
+    <string name="settings_privacy_helper">Cuenta qué pantallas se usan y qué día, sin datos sobre ti, tus notas ni tu dispositivo. Esta versión de la app aún no envía estadísticas: solo guarda tu elección.</string>
+
+    <!-- Importar / exportar -->
+    <string name="settings_backup">Importar y exportar</string>
+    <string name="settings_backup_helper">Copia de tus notas activas y categorías en un archivo JSON con el formato de exportación del servidor de Sito Notas.</string>
+    <string name="settings_export">Exportar</string>
+    <string name="settings_import">Importar</string>
+    <string name="settings_export_done">Exportadas %1$d notas y %2$d categorías.</string>
+    <string name="settings_import_done">Importadas %1$d notas y %2$d categorías nuevas (%3$d notas ya existían).</string>
+    <string name="settings_backup_failed">No se pudo leer o escribir el archivo: %1$s</string>
+    <string name="settings_import_invalid">El archivo no tiene el formato de exportación de Sito Notas.</string>
+</resources>

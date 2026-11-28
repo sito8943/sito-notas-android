@@ -23,12 +23,15 @@ class SyncEngine(
     private val push: SyncPush,
     private val pull: SyncPull,
     private val state: SyncStateStore,
+    /** Pasos extra (p. ej. el orden manual) entre subir y bajar notas. */
+    private val extraSteps: List<SyncStep> = emptyList(),
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun sync(userId: Long): SyncResult {
         val pulledCategories = pull.pullCategories()
         val categoriesPushed = push.pushCategories()
         val pushed = push.pushNotes(categoriesPushed)
+        extraSteps.forEach { it.run(userId) }
         val pulledNotes = pull.pullNotes(userId)
         state.setLastSyncAt(now())
         return SyncResult(pushed, pulledCategories, pulledNotes)

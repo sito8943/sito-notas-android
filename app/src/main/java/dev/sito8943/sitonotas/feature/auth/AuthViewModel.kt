@@ -33,6 +33,51 @@ class AuthViewModel(
         it.copy(password = value, error = null, fieldErrors = it.fieldErrors.copy(password = false))
     }
 
+    fun onConfirmPasswordChange(value: String) = _state.update {
+        it.copy(confirmPassword = value, error = null, fieldErrors = it.fieldErrors.copy(confirmPassword = false))
+    }
+
+    /** Alterna entre entrar y crear cuenta conservando el correo. */
+    fun toggleMode() = _state.update {
+        AuthUiState(
+            email = it.email,
+            mode = if (it.mode == AuthMode.SIGN_IN) AuthMode.SIGN_UP else AuthMode.SIGN_IN,
+        )
+    }
+
+    fun submit() = when (_state.value.mode) {
+        AuthMode.SIGN_IN -> signIn()
+        AuthMode.SIGN_UP -> signUp()
+    }
+
+    /**
+     * Registro en sito-auth, como `AuthSignUpView` (wallet): correo, contraseña
+     * y repeticion. El `AuthDto` del registro no trae refresh token, asi que se
+     * inicia sesion a continuacion con `rememberMe` para que la sesion dure.
+     */
+    fun signUp() {
+        val current = _state.value
+        val errors = AuthFieldErrors(
+            email = !current.email.isValidEmail(),
+            password = current.password.isEmpty(),
+            passwordTooShort = current.password.isNotEmpty() && current.password.length < MIN_PASSWORD_LENGTH,
+            confirmPassword = current.confirmPassword != current.password,
+        )
+        if (errors.any) {
+            _state.update { it.copy(fieldErrors = errors) }
+            return
+        }
+        _state.update { it.copy(loading = true, error = null, resetSent = false) }
+        viewModelScope.launch {
+            try {
+                api.signUp(current.email, current.password)
+                session.onAuthenticated(api.signIn(current.email, current.password))
+            } catch (error: Throwable) {
+                _state.update { it.copy(loading = false, error = error.toSignUpError()) }
+            }
+        }
+    }
+
     fun signIn() {
         val current = _state.value
         val errors = AuthFieldErrors(
@@ -79,10 +124,21 @@ internal fun Throwable.toAuthError(): AuthError = when (this) {
         400 -> AuthError.INVALID_INPUT
         401 -> AuthError.INVALID_CREDENTIALS
         404 -> AuthError.ACCOUNT_NOT_FOUND
+        429 -> AuthError.TOO_MANY_ATTEMPTS
         else -> AuthError.UNKNOWN
     }
     else -> AuthError.UNKNOWN
 }
+
+/** Errores de `POST /auth/sign-up` (cuerpos en texto plano). */
+internal fun Throwable.toSignUpError(): AuthError = when {
+    this is ApiException && status == 409 -> AuthError.EMAIL_TAKEN
+    this is ApiException && status == 400 && body?.contains(SIGN_UP_DISABLED) == true ->
+        AuthError.SIGN_UP_DISABLED
+    else -> toAuthError()
+}
+
+private const val SIGN_UP_DISABLED = "auth.register.featureDisabled"
 
 /** Validacion laxa a proposito: quien decide de verdad es el backend. */
 private fun String.isValidEmail(): Boolean =
