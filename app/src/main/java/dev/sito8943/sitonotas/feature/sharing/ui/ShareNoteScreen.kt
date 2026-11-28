@@ -268,7 +268,7 @@ private fun ShareBody(
                 onClick = { context.shareText(state.content, title) },
                 variant = ButtonVariant.OUTLINED,
                 color = ButtonColor.PRIMARY,
-                icon = R.drawable.fa_paper_plane,
+                icon = R.drawable.fa_share_nodes,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

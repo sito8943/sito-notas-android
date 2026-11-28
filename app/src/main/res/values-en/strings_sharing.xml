@@ -16,7 +16,7 @@
     <string name="share_permission_for">%1$s\'s permission</string>
     <string name="share_permission_read">Can view</string>
     <string name="share_permission_edit">Can edit</string>
-    <string name="share_send_copy">Send a copy</string>
+    <string name="share_send_copy">Share</string>
     <string name="share_error_not_found">No Sito Notas user has that email</string>
     <string name="share_error_self">You can\'t share a note with yourself</string>
     <string name="share_error_already_shared">This note is already shared with that person</string>
