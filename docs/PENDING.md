@@ -1,42 +1,32 @@
 # Pendiente
 
-Anotado el 2026-11-24 para retomar el 2026-11-25.
+Actualizado el 2026-11-28 tras la 0.2.0.
 
-## Prioridad (para la usuaria)
+## Para publicar la 0.2.0
 
-1. **Imágenes en notas**: subir/pegar como la web (`POST /notes/{id}/images`).
-   Hoy una nota con imágenes conserva el Markdown y se abre en modo Markdown.
-2. **Server (`servers/notes`): fallos de contrato que afectan a la sincronización**
-   - Borrado definitivo sin rastro: `DELETE /notes/permanent`, `DELETE /categories/permanent`
-     y la purga de 30 días no dejan tombstone; una nota borrada para siempre en la
-     web sigue en el móvil. Propuesta: `GET /notes/deleted?since=` (tabla de tombstones)
-     o listado ligero de ids para reconciliar.
-   - `PATCH /notes/reorder` no actualiza `updatedAt`; el orden cambiado en la web no
-     llega al pull incremental.
-   - `CategoryMapper.updateToEntity` ignora `deletedAt`/`nameSlug`: un PATCH restaura
-     en silencio una categoría en la papelera.
-   - `PATCH /notes/batch` y `/categories/batch` devuelven 404 para todo el lote si falta
-     un id; deberían saltarlo como `DELETE` y `restore`.
-   - `GET /categories` sin filtro `updatedAt` (se baja entera en cada sync).
-   - `updatedAt` es `LocalDateTime` sin zona; mejor `Instant` con offset.
+1. **Desplegar el server** (`sito8943/sito-notes-server#23`) a la vez que la app:
+   `PATCH /notes/batch` y `/categories/batch` ahora devuelven `long[]` (la 0.2.0
+   entiende los dos formatos; la 0.1.0 no entiende el nuevo). Migraciones V8 y V9.
+2. Instalar el APK release firmado de la 0.2.0 (keystore `sitonotas-release.jks`
+   fuera de git; hacer copia de seguridad del `.jks` y `keystore.properties`).
 
-## Funciones de la web que faltan en Android
+## Huecos conocidos
 
-- Reordenar notas arrastrando (el orden manual se ve, no se cambia).
-- Vistas configurables (columnas/cuadrícula, view-configs).
-- Búsqueda tolerante a errores (fuzzy).
-- Contadores en las pestañas de filtro.
-- "Actualizado hace…" en el editor.
-- Importar/exportar notas y categorías.
-- Cambios en tiempo real (socket); hoy se sincroniza al editar, al abrir y a mano.
-- Ajustes: cambiar contraseña, privacidad/analítica.
-- Registro de cuenta (se crea en la web).
-- No aplica en móvil: pestañas de varias notas, atajos de teclado.
+- Pegar una imagen desde el teclado (Gboard) no funciona: haría falta pasar el
+  editor a `TextFieldState`. Se cubre con "Pegar imagen" en la barra.
+- Los GIF se ven como imagen fija.
+- Notas compartidas conmigo: sin imágenes en la vista de solo lectura y pública;
+  si el último PATCH falla al salir de una nota con permiso de edición, ese
+  cambio se pierde (solo online, como la web).
+- El badge de "Compartidas" se refresca al navegar, no por socket.
+- Analítica: solo se guarda la preferencia; no se envía nada (habría que dar de
+  alta la app Android en sito-feature-usage).
+- Registro: depende de `FEATURES_AUTH_REGISTER_ENABLED` en sito-auth (por
+  defecto desactivado). No hay pantalla de "revisa tu correo".
+- El socket no avisa de creaciones, PATCH en lote, reorden, borrados definitivos
+  ni categorías: esos cambios llegan en la siguiente sincronización.
+- Si el cursor de tombstones tiene más de 85 días se hace una descarga completa.
 
-## Otros
+## No aplica en móvil
 
-- APK release firmado para la usuaria (no hay keystore de SitoNotas todavía).
-- APK release firmado de SitoWallet 0.1.19 (arreglo de sesión `rememberMe`) para instalar.
-- Limitaciones conocidas de sync: cambio de cuenta en el mismo móvil copia notas a la
-  nueva cuenta; respuesta perdida tras un batch create duplica notas; el editor no se
-  refresca si otro dispositivo cambia la nota abierta.
+- Pestañas de varias notas, atajos de teclado.
