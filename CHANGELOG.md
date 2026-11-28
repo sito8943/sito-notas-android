@@ -12,8 +12,8 @@
 - "Editado hace…" label in the editor (`5a742b6`).
 - Sharing: share a note by email (view/edit), public links, "Compartidas
   conmigo" tab with unseen badge, public note screen and
-  `share.notes.sito8943.com` deep links (`f286cdc`, `f92bf48`, `6015ae5`,
-  `2521b35`).
+  `share.notes.sito8943.com` deep links; "Compartir" sends a copy through the
+  share sheet (`f286cdc`, `f92bf48`, `6015ae5`, `2521b35`, `6cc04cd`).
 - Drag to reorder notes (`PATCH /notes/reorder`, queued offline), columns by
   width like the web (1 on a phone) and counters on the filter tabs
   (`f2d0766`, `cb989ac`, `b944d11`).
