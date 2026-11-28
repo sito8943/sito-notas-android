@@ -10,7 +10,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -27,6 +26,11 @@ data class NoteEditorUiState(
     val preview: Boolean = false,
     /** La nota se borro mientras estaba abierta (otro dispositivo, papelera). */
     val missing: Boolean = false,
+    /**
+     * Sube cuando el contenido cambia desde fuera (una descarga de otro
+     * dispositivo): el editor enriquecido se vuelve a crear con el nuevo texto.
+     */
+    val externalRevision: Int = 0,
 ) {
     val selectedCategories: List<Category>
         get() = allCategories.filter { it.id in categoryIds }
@@ -56,6 +60,10 @@ class NoteEditorViewModel(
     private val writes = Mutex()
     private var pendingSave: Job? = null
 
+    /** Titulo y contenido que hay en Room segun este editor (lo ultimo cargado o guardado). */
+    @Volatile
+    private var saved: Pair<String, String>? = null
+
     init {
         viewModelScope.launch {
             categories.observeCategories().collect { all ->
@@ -69,23 +77,61 @@ class NoteEditorViewModel(
         }
         if (noteId != null) {
             viewModelScope.launch {
-                val note = notes.observeNote(noteId).first()
-                _state.update {
-                    if (note == null) {
-                        it.copy(loading = false, missing = true)
-                    } else {
-                        it.copy(
-                            loading = false,
-                            title = note.title,
-                            content = note.content,
-                            favorite = note.favorite,
-                            categoryIds = note.categories.map { c -> c.id }.toSet(),
-                            // Abrir una nota con contenido muestra la vista previa.
-                            preview = note.content.isNotBlank(),
-                        )
+                var first = true
+                notes.observeNote(noteId).collect { note ->
+                    if (first) {
+                        first = false
+                        onLoaded(note)
+                    } else if (note != null) {
+                        onExternalChange(note)
                     }
                 }
             }
+        }
+    }
+
+    private fun onLoaded(note: Note?) {
+        saved = note?.let { it.title to it.content }
+        _state.update {
+            if (note == null) {
+                it.copy(loading = false, missing = true)
+            } else {
+                it.copy(
+                    loading = false,
+                    title = note.title,
+                    content = note.content,
+                    favorite = note.favorite,
+                    categoryIds = note.categories.map { c -> c.id }.toSet(),
+                    // Abrir una nota con contenido muestra la vista previa.
+                    preview = note.content.isNotBlank(),
+                )
+            }
+        }
+    }
+
+    /**
+     * La nota cambio en Room con el editor abierto. Solo se aplica si viene del
+     * servidor (sin nada pendiente: no es el eco de un guardado propio) y aqui
+     * no hay ediciones sin guardar; si las hay, gana lo local, que se subira.
+     */
+    private fun onExternalChange(note: Note) {
+        if (note.pendingSync) return
+        if (pendingSave?.isActive == true) return
+        val current = _state.value
+        if (current.loading || current.missing) return
+        if (saved != current.title to current.content) return
+        val categoryIds = note.categories.map { it.id }.toSet()
+        val textChanged = note.title != current.title || note.content != current.content
+        if (!textChanged && note.favorite == current.favorite && categoryIds == current.categoryIds) return
+        saved = note.title to note.content
+        _state.update {
+            it.copy(
+                title = note.title,
+                content = note.content,
+                favorite = note.favorite,
+                categoryIds = categoryIds,
+                externalRevision = if (textChanged) it.externalRevision + 1 else it.externalRevision,
+            )
         }
     }
 
@@ -161,6 +207,7 @@ class NoteEditorViewModel(
         val existing = current.noteId
         if (existing != null) {
             notes.updateText(existing, current.title, current.content)
+            saved = current.title to current.content
             return existing
         }
         if (!force && current.title.isBlank() && current.content.isBlank()) return null
@@ -170,6 +217,7 @@ class NoteEditorViewModel(
             favorite = current.favorite,
             categoryIds = current.categoryIds,
         )
+        saved = current.title to current.content
         _state.update { it.copy(noteId = created) }
         return created
     }

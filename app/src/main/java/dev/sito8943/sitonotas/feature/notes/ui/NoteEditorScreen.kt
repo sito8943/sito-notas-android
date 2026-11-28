@@ -89,7 +89,7 @@ fun NoteEditorScreen(viewModel: NoteEditorViewModel, onBack: () -> Unit) {
     val rich = if (loaded && markdownMode == false) {
         // Se crea desde el contenido actual al cargar y cada vez que se vuelve
         // de Markdown; despues el editor es la fuente y solo avisa de cambios.
-        remember(richEpoch) { RichEditorState(state.content, viewModel::onContentChange) }
+        remember(richEpoch, state.externalRevision) { RichEditorState(state.content, viewModel::onContentChange) }
     } else {
         null
     }
