@@ -11,7 +11,7 @@ Architecture, versions, auth and design system copied from `../SitoWallet`
 | Package / namespace | `dev.sito8943.sitonotas` |
 | applicationId | `com.sito8943.notas` (debug: `.debug` suffix) |
 | Version | 0.1.0 (code 1), minSdk 26, target 36, compile 37 |
-| BuildConfig | `API_BASE_URL` (notes API), `AUTH_BASE_URL` (sito-auth) |
+| BuildConfig | `API_BASE_URL` (notes API), `AUTH_BASE_URL` (sito-auth), `SHARE_BASE_URL` (public links; empty = `<api>/s/<token>`), `WEB_APP_URL` (`/note/<id>` links) |
 | Database | Room `sito-notas.db`, version 1, schema in `app/schemas/` |
 
 ## Code map (`app/src/main/java/dev/sito8943/sitonotas/`)
@@ -27,6 +27,7 @@ Architecture, versions, auth and design system copied from `../SitoWallet`
 | `core/model` | Search and category-name rules ported from the web |
 | `feature/auth` | Sign in, forgot password, continue without account (no sign-up) |
 | `feature/notes` | List (search, favorites/category filters), editor with autosave. `editor/`: rich-text editor over Markdown (one block per line, original syntax kept byte for byte), formatting toolbar, Markdown source mode |
+| `feature/sharing` | Online only, no Room: share with users (`/notes/{id}/shares`), public link (`/notes/{id}/link`, `/public/notes/{token}`), "Compartidas conmigo" (`/notes/shared`, unseen badge), shared note view/edit (`GET`/`PATCH /notes/{id}`), deep link `https://share.notes.sito8943.com/<token>` |
 | `feature/categories`, `feature/trash`, `feature/settings` | Their screens and ViewModels |
 | `ui/` | Design system: tokens ported from the web (`apps/notes/src/styles/global.css`), Font Awesome icons (`FaIcon`, `res/drawable/fa_*.xml`), Poppins headings |
 | `navigation/` | Single NavHost with a bottom bar on the 4 tabs |
@@ -80,4 +81,6 @@ the next trigger. No WorkManager.
   the web only arrives with a full pull. No reorder UI in v1.
 - Switching accounts on one device: local rows keep the previous account's
   `remoteId`s; a PATCH 404 re-creates them in the new account.
-- Shares, public links, images, view configs: out of scope.
+- Images, view configs: out of scope. Sharing is online only: shared-with-me
+  notes are never stored in Room and an EDIT-share edit is lost if the PATCH
+  fails and the user leaves (the error is shown).
