@@ -12,6 +12,7 @@ data class SyncResult(
 /**
  * Una sincronizacion completa, en este orden:
  *
+ * 0. Si los tombstones guardados caducaron en el servidor, todo completo.
  * 1. Bajar categorias (tombstones y cambios): enlaza por nombre las creadas
  *    sin conexion antes de intentar crearlas (el backend rechaza nombres
  *    repetidos con 409).
@@ -31,6 +32,7 @@ class SyncEngine(
     private val extraSteps: List<SyncStep> = emptyList(),
 ) {
     suspend fun sync(userId: Long): SyncResult {
+        pull.resetStaleCursors(userId)
         val pulledCategories = pull.syncCategories(userId)
         val categoriesPushed = push.pushCategories()
         val pushed = push.pushNotes(categoriesPushed)

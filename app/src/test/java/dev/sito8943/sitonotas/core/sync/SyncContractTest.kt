@@ -65,6 +65,23 @@ class SyncContractTest {
     }
 
     @Test
+    fun `expired tombstone cursors force a full pull that drops what is missing`() = runBlocking {
+        api.newServer = true
+        val gone = notes.create("Se fue", "texto")
+        val kept = notes.create("Sigue", "texto")
+        engine.sync(user)
+        api.notes.remove(remoteIdOf(gone)!!) // tombstone ya caducado en el servidor
+        state.setCursor(user, SyncCursor.NOTE_TOMBSTONES, "2020-01-01T00:00:00Z")
+
+        engine.sync(user)
+
+        assertNull(database.notes().getById(gone))
+        assertNotNull(database.notes().getById(kept))
+        assertNull("descarga completa", api.noteCursors.last())
+        assertNotNull(state.cursor(user, SyncCursor.NOTES))
+    }
+
+    @Test
     fun `tombstones are asked from the last until, not from the start`() = runBlocking {
         api.newServer = true
         engine.sync(user)

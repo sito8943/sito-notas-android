@@ -13,6 +13,8 @@ data class PullResult(
     val categoriesRemoved: Int = 0,
     val notesUpserted: Int = 0,
     val notesSkippedPending: Int = 0,
+    /** Quitadas en una descarga completa por no estar ya en el servidor. */
+    val notesRemoved: Int = 0,
 )
 
 /**
@@ -166,9 +168,30 @@ class SyncPull(
         return PullResult(categoriesUpserted = upserted, categoriesRemoved = removed)
     }
 
+    /**
+     * El servidor guarda los tombstones 90 dias. Si el ultimo cursor de
+     * tombstones es mas viejo que eso (con margen), algun borrado se habra
+     * perdido: se reinician los cursores y la pasada baja todo, borrando aqui
+     * lo que falte alla.
+     */
+    suspend fun resetStaleCursors(userId: Long): Boolean {
+        val oldest = listOf(SyncCursor.NOTE_TOMBSTONES, SyncCursor.CATEGORY_TOMBSTONES)
+            .mapNotNull { ServerTime.toEpochMillis(state.cursor(userId, it)) }
+            .minOrNull() ?: return false
+        if (oldest >= now() - TOMBSTONE_SAFE_AGE_MILLIS) return false
+        state.clearCursors(userId)
+        return true
+    }
+
     suspend fun pullNotes(userId: Long): PullResult {
         val cursor = state.pullCursor(userId)
-        val remote = fetchAll { page -> api.getNotes(page, pageSize, cursor) }
+        val totals = mutableSetOf<Long>()
+        val remote = fetchAll { page ->
+            api.getNotes(page, pageSize, cursor).also { totals += it.totalElements }
+        }
+        // Descarga completa y coherente (nadie movio las paginas mientras se
+        // leian): lo que no vino ya no existe en el servidor.
+        val complete = cursor == null && totals.size <= 1 && (totals.firstOrNull() ?: 0L) == remote.size.toLong()
 
         // Una nota que apunta a una categoria que aqui no existe: se descargan
         // las categorias antes de mezclar, para no perder el enlace.
@@ -178,6 +201,7 @@ class SyncPull(
 
         var upserted = 0
         var skipped = 0
+        var removed = 0
         database.withTransaction {
             val categoryIdByRemote = categories.getAll()
                 .filter { it.remoteId != null && !it.purged }
@@ -195,13 +219,20 @@ class SyncPull(
                 upserted++
             }
 
+            if (complete) {
+                val remoteIds = remote.map { it.id }.toSet()
+                val gone = notes.getAll().filter { it.remoteId != null && it.remoteId !in remoteIds && !it.pending }
+                if (gone.isNotEmpty()) notes.deleteByIds(gone.map { it.id })
+                removed = gone.size
+            }
+
             notes.deleteExpiredTrash(before = now() - TRASH_RETENTION_MILLIS)
         }
 
         val newest = remote.fold(cursor) { acc, note -> ServerTime.max(acc, note.updatedAt) }
         if (newest != cursor) state.setPullCursor(userId, newest)
 
-        return PullResult(notesUpserted = upserted, notesSkippedPending = skipped)
+        return PullResult(notesUpserted = upserted, notesSkippedPending = skipped, notesRemoved = removed)
     }
 
     private suspend fun <T> fetchAll(load: suspend (page: Int) -> PageResponse<T>): List<T> {
@@ -251,6 +282,9 @@ class SyncPull(
 
         /** `since` de la primera peticion de tombstones: todos los que haya. */
         const val TOMBSTONES_FROM_START = "1970-01-01T00:00:00Z"
+
+        /** El servidor guarda tombstones 90 dias; 85 deja margen de reloj. */
+        const val TOMBSTONE_SAFE_AGE_MILLIS = 85L * 24 * 60 * 60 * 1000
 
         /** Tope de seguridad del paginado (como `MAX_NOTE_PAGES` en la web). */
         const val MAX_PAGES = 1_000
