@@ -22,6 +22,12 @@ import dev.sito8943.sitonotas.feature.notes.NoteEditorViewModel
 import dev.sito8943.sitonotas.feature.notes.NoteRepository
 import dev.sito8943.sitonotas.feature.notes.NotesViewModel
 import dev.sito8943.sitonotas.feature.settings.SettingsViewModel
+import dev.sito8943.sitonotas.feature.sharing.PublicNoteViewModel
+import dev.sito8943.sitonotas.feature.sharing.ShareNoteViewModel
+import dev.sito8943.sitonotas.feature.sharing.SharedNoteViewModel
+import dev.sito8943.sitonotas.feature.sharing.SharedNotesViewModel
+import dev.sito8943.sitonotas.feature.sharing.UnseenShares
+import dev.sito8943.sitonotas.feature.sharing.data.SharingApi
 import dev.sito8943.sitonotas.feature.trash.TrashViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,6 +96,23 @@ class AppContainer(context: Context) {
             scope = applicationScope,
         )
     }
+
+    /** Sharing is online only (no Room): shares, public links, "shared with me". */
+    private val sharingApi by lazy { SharingApi(notesClient) }
+
+    val unseenShares: UnseenShares by lazy {
+        UnseenShares(sessionRepository.state, sharingApi, applicationScope)
+    }
+
+    fun createShareNoteViewModel(noteId: Long?) =
+        ShareNoteViewModel(noteId, noteRepository, sessionRepository.state, sharingApi)
+
+    fun createSharedNotesViewModel() = SharedNotesViewModel(sessionRepository.state, sharingApi, unseenShares)
+
+    fun createSharedNoteViewModel(remoteId: Long) =
+        SharedNoteViewModel(remoteId, sharingApi, noteRepository, applicationScope)
+
+    fun createPublicNoteViewModel(token: String) = PublicNoteViewModel(token, sharingApi, noteRepository)
 
     fun createAuthViewModel() = AuthViewModel(authApi, sessionRepository)
 

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sharing (web apps/notes/src/lang/es/_pages.json: share, shared, publicNote). -->
+<resources>
+    <string name="tab_shared">Compartidas</string>
+
+    <string name="share_action">Compartir</string>
+    <string name="share_title">Compartir «%1$s»</string>
+    <string name="share_email_label">Correo de la persona</string>
+    <string name="share_email_placeholder">correo@ejemplo.com</string>
+    <string name="share_submit">Compartir</string>
+    <string name="share_hint">Solo con personas que ya usan Sito Notas. Elige si pueden ver o editar.</string>
+    <string name="share_people">Personas con acceso</string>
+    <string name="share_only_you">Solo tú tienes acceso a esta nota.</string>
+    <string name="share_remove">Quitar acceso a %1$s</string>
+    <string name="share_permission_label">Permiso</string>
+    <string name="share_permission_for">Permiso de %1$s</string>
+    <string name="share_permission_read">Puede ver</string>
+    <string name="share_permission_edit">Puede editar</string>
+    <string name="share_send_copy">Enviar una copia</string>
+    <string name="share_error_not_found">No hay ningún usuario de Sito Notas con ese correo</string>
+    <string name="share_error_self">No puedes compartir una nota contigo</string>
+    <string name="share_error_already_shared">Ya compartiste esta nota con esa persona</string>
+    <string name="share_link_title">Acceso general</string>
+    <string name="share_link_label">Quién puede abrir la nota</string>
+    <string name="share_link_restricted">Restringido</string>
+    <string name="share_link_public">Cualquiera con el enlace</string>
+    <string name="share_link_restricted_hint">Solo las personas con acceso pueden abrirla.</string>
+    <string name="share_link_public_hint">Cualquiera con el enlace puede leerla, sin cuenta. No puede editarla.</string>
+    <string name="share_link_copy">Copiar enlace</string>
+    <string name="share_link_copied">Enlace copiado</string>
+    <string name="share_link_send">Enviar enlace</string>
+    <string name="share_link_turned_off">Enlace público desactivado. Los enlaces compartidos antes ya no funcionan.</string>
+    <string name="share_no_account">Para compartir una nota necesitas una cuenta. Inicia sesión en Ajustes.</string>
+    <string name="share_not_synced">Esta nota aún no está en el servidor. Sincroniza y vuelve a intentarlo.</string>
+
+    <string name="shared_title">Compartidas conmigo</string>
+    <string name="shared_description">Notas que otras personas compartieron contigo.</string>
+    <string name="shared_empty">Nadie ha compartido una nota contigo todavía.</string>
+    <string name="shared_from">De %1$s</string>
+    <string name="shared_read_only">Solo lectura</string>
+    <string name="shared_can_edit">Puedes editar</string>
+    <string name="shared_needs_account">Inicia sesión para ver las notas que otras personas compartieron contigo.</string>
+    <string name="shared_saving">Guardando…</string>
+    <string name="shared_saved">Guardado</string>
+    <string name="shared_not_saved">Sin guardar</string>
+
+    <string name="public_note_by">De %1$s</string>
+    <string name="public_note_updated">Editado %1$s</string>
+    <string name="public_note_not_found">Este enlace no existe o fue desactivado</string>
+
+    <string name="sharing_error_offline">Sin conexión. Compartir necesita internet.</string>
+    <string name="sharing_error_not_found">Esta nota ya no existe o ya no tienes acceso.</string>
+    <string name="sharing_error_unknown">Algo salió mal. Inténtalo de nuevo.</string>
+    <string name="sharing_retry">Reintentar</string>
+    <string name="sharing_sign_in">Iniciar sesión</string>
+</resources>

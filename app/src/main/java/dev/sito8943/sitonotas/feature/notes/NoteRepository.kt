@@ -24,6 +24,13 @@ class NoteRepository(
 
     fun observeNote(id: Long): Flow<Note?> = dao.observeById(id).map { it?.toDomain() }
 
+    /** Server id of a local note; null while it was never uploaded (sharing needs it). */
+    suspend fun remoteIdOf(id: Long): Long? = dao.getById(id)?.takeIf { !it.purged }?.remoteId
+
+    /** Local id of an active note the server knows as [remoteId], if it is on this phone. */
+    suspend fun localIdOf(remoteId: Long): Long? =
+        dao.getByRemoteId(remoteId)?.takeIf { !it.purged && it.deletedAt == null }?.id
+
     /**
      * Nueva nota arriba del todo si ya hay orden manual (`min - 1`), igual que
      * hace el backend al crearla.
