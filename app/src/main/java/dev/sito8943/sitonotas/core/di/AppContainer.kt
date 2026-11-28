@@ -11,6 +11,7 @@ import dev.sito8943.sitonotas.core.network.RestClient
 import dev.sito8943.sitonotas.core.settings.AppPreferences
 import dev.sito8943.sitonotas.core.sync.AccountGuard
 import dev.sito8943.sitonotas.core.sync.NotesApi
+import dev.sito8943.sitonotas.core.sync.RealtimeClient
 import dev.sito8943.sitonotas.core.sync.SyncCoordinator
 import dev.sito8943.sitonotas.core.sync.SyncEngine
 import dev.sito8943.sitonotas.core.sync.SyncPull
@@ -90,6 +91,17 @@ class AppContainer(context: Context) {
             sessionState = sessionRepository.state,
             scope = applicationScope,
             accountGuard = AccountGuard(database, preferences),
+        )
+    }
+
+    /** Eventos del servidor -> sincronizacion. Arranca con la app; conecta solo en primer plano. */
+    val realtimeClient: RealtimeClient by lazy {
+        RealtimeClient(
+            socketUrl = RealtimeClient.socketUrlOf(BuildConfig.API_BASE_URL),
+            tokens = sessionRepository,
+            sessionState = sessionRepository.state,
+            scope = applicationScope,
+            onRemoteChange = { syncCoordinator.requestSync() },
         )
     }
 

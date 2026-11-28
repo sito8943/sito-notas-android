@@ -47,6 +47,13 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         container.syncCoordinator.requestSync()
+        container.realtimeClient.setForeground(true)
+    }
+
+    /** En segundo plano no hay socket: se reconecta al volver. */
+    override fun onStop() {
+        container.realtimeClient.setForeground(false)
+        super.onStop()
     }
 
     /** Iconos de las barras del sistema segun el tema de la app, no el del telefono. */
