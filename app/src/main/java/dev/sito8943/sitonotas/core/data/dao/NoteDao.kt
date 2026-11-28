@@ -127,9 +127,12 @@ interface NoteDao {
     @Query("UPDATE notes SET remote_deleted = :deleted WHERE id IN (:ids)")
     suspend fun markRemoteDeleted(ids: List<Long>, deleted: Boolean)
 
-    /** El servidor ya no la tiene: se vuelve a crear en la proxima subida. */
-    @Query("UPDATE notes SET remote_id = NULL, remote_deleted = 0, dirty = 1 WHERE id = :id")
-    suspend fun unlinkRemote(id: Long)
+    /**
+     * El servidor ya no la tiene: se vuelve a crear en la proxima subida, con
+     * un `client_id` nuevo (es otra alta, no un reintento de la anterior).
+     */
+    @Query("UPDATE notes SET remote_id = NULL, remote_deleted = 0, dirty = 1, client_id = :clientId WHERE id = :id")
+    suspend fun unlinkRemote(id: Long, clientId: String)
 
     /**
      * Lo que el servidor ya habra purgado de su papelera (30 dias por defecto,

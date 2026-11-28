@@ -3,6 +3,7 @@ package dev.sito8943.sitonotas.core.sync
 import dev.sito8943.sitonotas.core.data.NotesDatabase
 import dev.sito8943.sitonotas.core.data.entity.CategoryEntity
 import dev.sito8943.sitonotas.core.data.entity.NoteEntity
+import dev.sito8943.sitonotas.core.data.entity.newClientId
 import dev.sito8943.sitonotas.core.network.ApiException
 
 /** Cuanto subio una pasada. */
@@ -56,7 +57,7 @@ class SyncPush(
             batch = { rows -> api.updateCategories(rows.map { it.toUpdateBody() }) },
             single = { row -> api.updateCategory(row.toUpdateBody()) },
             onUpdated = { row -> categories.markUpdated(row.id, row.localVersion) },
-            onGone = { row -> categories.unlinkRemote(row.id) },
+            onGone = { row -> categories.unlinkRemote(row.id, newClientId()) },
         )
 
         // Borrados definitivos (la web no tiene papelera de categorias).
@@ -85,7 +86,7 @@ class SyncPush(
             val prepared = creates.map { note -> note to categoryRemoteIds(note.id, remoteCategoryIds) }
             val ids = api.createNotes(
                 prepared.map { (note, refs) ->
-                    CreateNoteBody(note.title, note.content, refs.remoteIds)
+                    CreateNoteBody(note.title, note.content, refs.remoteIds, note.clientId)
                 },
             )
             checkIdCount("notes", creates.size, ids.size)
@@ -112,7 +113,7 @@ class SyncPush(
             onGone = { row ->
                 // En la papelera y el servidor ya no la tiene: la purgo el
                 // servidor. Si no, se vuelve a crear con lo que hay en local.
-                if (row.deletedAt != null) notes.deleteByIds(listOf(row.id)) else notes.unlinkRemote(row.id)
+                if (row.deletedAt != null) notes.deleteByIds(listOf(row.id)) else notes.unlinkRemote(row.id, newClientId())
             },
         )
 
@@ -192,7 +193,7 @@ class SyncPush(
         categoryIds = categoryRemoteIds(id, remoteIds).remoteIds,
     )
 
-    private fun CategoryEntity.toCreateBody() = CreateCategoryBody(name, description, color)
+    private fun CategoryEntity.toCreateBody() = CreateCategoryBody(name, description, color, clientId)
 
     private fun CategoryEntity.toUpdateBody() =
         UpdateCategoryBody(requireNotNull(remoteId), name, description, color)
