@@ -242,6 +242,7 @@ class SyncPull(
             dirty = false,
             purged = false,
             localVersion = base?.localVersion ?: 0,
+            clientId = base?.clientId ?: newClientId(),
         )
     }
 
