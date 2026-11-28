@@ -94,3 +94,13 @@ data class UpdateCategoryBody(
     val description: String? = null,
     val color: String? = null,
 )
+
+/**
+ * `DeletedIdsResponse`: ids borrados para siempre desde `since` y `until`, la
+ * hora del servidor que hay que mandar como siguiente `since`.
+ */
+@Serializable
+data class DeletedIds(
+    val ids: List<Long> = emptyList(),
+    val until: String? = null,
+)

@@ -55,6 +55,7 @@ class SyncPush(
         updateWithFallback(
             rows = updates,
             batch = { rows -> api.updateCategories(rows.map { it.toUpdateBody() }) },
+            remoteIdOf = { it.remoteId },
             single = { row -> api.updateCategory(row.toUpdateBody()) },
             onUpdated = { row -> categories.markUpdated(row.id, row.localVersion) },
             onGone = { row -> categories.unlinkRemote(row.id, newClientId()) },
@@ -108,6 +109,7 @@ class SyncPush(
         updateWithFallback(
             rows = updates,
             batch = { rows -> api.updateNotes(rows.map { it.toUpdateBody(remoteCategoryIds) }) },
+            remoteIdOf = { it.remoteId },
             single = { row -> api.updateNote(row.toUpdateBody(remoteCategoryIds)) },
             onUpdated = { row -> notes.markUpdated(row.id, row.localVersion) },
             onGone = { row ->
@@ -147,21 +149,30 @@ class SyncPush(
     }
 
     /**
-     * Lote primero. Un 404 en el lote dice que **alguna** fila ya no existe en
-     * el servidor (purgada de la papelera, borrada desde la web) y tumba el
-     * lote entero; se reintenta una a una para aislarla y que el resto suba.
+     * Lote primero.
+     *
+     * - Servidor nuevo: salta los ids que ya no tiene y devuelve los que
+     *   actualizo. Una fila ausente de la respuesta ya no existe alli.
+     * - Servidor anterior: devuelve un conteo, y un 404 dice que **alguna**
+     *   fila ya no existe (purgada de la papelera, borrada desde la web) y
+     *   tumba el lote entero; se reintenta una a una para aislarla.
+     *
+     * En los dos casos la fila desaparecida va a [onGone].
      */
     private suspend fun <T> updateWithFallback(
         rows: List<T>,
-        batch: suspend (List<T>) -> Unit,
+        batch: suspend (List<T>) -> List<Long>?,
+        remoteIdOf: (T) -> Long?,
         single: suspend (T) -> Unit,
         onUpdated: suspend (T) -> Unit,
         onGone: suspend (T) -> Unit,
     ) {
         if (rows.isEmpty()) return
         try {
-            batch(rows)
-            rows.forEach { onUpdated(it) }
+            val updated = batch(rows)?.toSet()
+            rows.forEach { row ->
+                if (updated == null || remoteIdOf(row) in updated) onUpdated(row) else onGone(row)
+            }
             return
         } catch (error: ApiException) {
             if (error.status != HTTP_NOT_FOUND) throw error

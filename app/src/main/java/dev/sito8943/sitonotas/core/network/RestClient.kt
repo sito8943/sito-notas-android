@@ -94,6 +94,13 @@ class RestClient(
         auth: Boolean = false,
     ): String = execute(path, HttpMethod.POST, encode(body), auth, allowRefresh = true)
 
+    /** Como [postForRawBody], para los `PATCH /<recurso>/batch`. */
+    suspend inline fun <reified B> patchForRawBody(
+        path: String,
+        body: B,
+        auth: Boolean = true,
+    ): String = execute(path, HttpMethod.PATCH, encode(body), auth, allowRefresh = true)
+
     /** Para endpoints `204 No Content` como `/auth/sign-out`. */
     suspend inline fun <reified B> postForUnit(
         path: String,

@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import dev.sito8943.sitonotas.core.data.NotesDatabase
 import dev.sito8943.sitonotas.core.data.entity.CategoryEntity
 import dev.sito8943.sitonotas.core.data.entity.NoteEntity
+import dev.sito8943.sitonotas.core.data.entity.newClientId
 import dev.sito8943.sitonotas.core.model.CategoryNames
 
 /** Cuanto bajo una pasada. */
@@ -20,10 +21,13 @@ data class PullResult(
  * Regla de conflicto: si la fila local tiene algo pendiente de subir, gana lo
  * local (se subira); si no, gana el servidor.
  *
- * - Categorias: siempre completas. Son pocas y `GET /categories` no filtra por
- *   `updatedAt`. Al venir todas se detectan tambien las borradas en la web.
+ * - Categorias ([syncCategories]): con un servidor que da tombstones
+ *   (`GET /categories/deleted`), incrementales por `updatedAt >= cursor` y los
+ *   borrados llegan como ids. Con el servidor anterior, siempre completas: al
+ *   venir todas se detectan tambien las borradas en la web.
  * - Notas: incrementales por `updatedAt >= cursor`, con papelera incluida. La
- *   primera vez (sin cursor) es una descarga completa.
+ *   primera vez (sin cursor) es una descarga completa. Los borrados
+ *   definitivos llegan por [pullNoteTombstones].
  */
 class SyncPull(
     private val database: NotesDatabase,
@@ -36,9 +40,74 @@ class SyncPull(
     private val categories get() = database.categories()
     private val notes get() = database.notes()
 
-    suspend fun pullCategories(): PullResult {
-        val remote = fetchAll { page -> api.getCategories(page, pageSize) }
-            .filter { it.deletedAt == null }
+    /**
+     * Tombstones de categorias y luego la descarga: incremental si el servidor
+     * los tiene y ya hay cursor, completa si no.
+     */
+    suspend fun syncCategories(userId: Long): PullResult {
+        val since = state.cursor(userId, SyncCursor.CATEGORY_TOMBSTONES) ?: TOMBSTONES_FROM_START
+        val tombstones = api.getDeletedCategories(since) ?: return pullCategories()
+        val removed = applyCategoryTombstones(tombstones.ids)
+        val result = pullCategories(updatedSince = state.cursor(userId, SyncCursor.CATEGORIES))
+        // `until` es la hora del servidor antes de leer: lo que cambie despues
+        // tendra un `updatedAt` posterior y entrara en la siguiente pasada.
+        tombstones.until?.let { until ->
+            state.setCursor(userId, SyncCursor.CATEGORY_TOMBSTONES, until)
+            state.setCursor(userId, SyncCursor.CATEGORIES, until)
+        }
+        return result.copy(categoriesRemoved = result.categoriesRemoved + removed)
+    }
+
+    /**
+     * Borra lo que el servidor borro para siempre. Lo pendiente se resuelve
+     * como un 404 al subir: una nota activa con cambios se vuelve a crear, una
+     * en la papelera o ya purgada aqui se va.
+     */
+    suspend fun pullNoteTombstones(userId: Long): Int {
+        val since = state.cursor(userId, SyncCursor.NOTE_TOMBSTONES) ?: TOMBSTONES_FROM_START
+        val tombstones = api.getDeletedNotes(since) ?: return 0
+        var removed = 0
+        database.withTransaction {
+            for (remoteId in tombstones.ids.distinct()) {
+                val local = notes.getByRemoteId(remoteId) ?: continue
+                if (local.pending && !local.purged && local.deletedAt == null) {
+                    notes.unlinkRemote(local.id, newClientId())
+                } else {
+                    notes.deleteByIds(listOf(local.id))
+                    removed++
+                }
+            }
+        }
+        tombstones.until?.let { state.setCursor(userId, SyncCursor.NOTE_TOMBSTONES, it) }
+        return removed
+    }
+
+    private suspend fun applyCategoryTombstones(remoteIds: List<Long>): Int {
+        var removed = 0
+        database.withTransaction {
+            for (remoteId in remoteIds.distinct()) {
+                val local = categories.getByRemoteId(remoteId) ?: continue
+                if (local.dirty && !local.purged) {
+                    categories.unlinkRemote(local.id, newClientId())
+                } else {
+                    categories.deleteByIds(listOf(local.id))
+                    removed++
+                }
+            }
+        }
+        return removed
+    }
+
+    /**
+     * [updatedSince] nulo = descarga completa (solo activas), que ademas borra
+     * aqui las que ya no estan en el servidor. Con cursor llegan tambien las
+     * que pasaron a la papelera, y esas se quitan.
+     */
+    suspend fun pullCategories(updatedSince: String? = null): PullResult {
+        val full = updatedSince == null
+        val fetched = fetchAll { page -> api.getCategories(page, pageSize, updatedSince) }
+        val remote = fetched.filter { it.deletedAt == null }
+        val trashed = fetched.filter { it.deletedAt != null }.map { it.id }.toSet()
 
         var upserted = 0
         var removed = 0
@@ -82,10 +151,12 @@ class SyncPull(
             }
 
             // Borradas en el servidor (la web las borra para siempre) y sin
-            // nada pendiente aqui: fuera. Sus enlaces caen en cascada.
+            // nada pendiente aqui: fuera. Sus enlaces caen en cascada. Solo una
+            // descarga completa sabe que falta algo.
             val remoteIds = remote.map { it.id }.toSet()
             val gone = locals.filter {
-                it.remoteId != null && it.remoteId !in remoteIds && !it.dirty && !it.purged
+                it.remoteId != null && !it.dirty && !it.purged &&
+                    (if (full) it.remoteId !in remoteIds else it.remoteId in trashed)
             }
             if (gone.isNotEmpty()) {
                 categories.deleteByIds(gone.map { it.id })
@@ -176,6 +247,9 @@ class SyncPull(
 
     companion object {
         const val PAGE_SIZE = 100
+
+        /** `since` de la primera peticion de tombstones: todos los que haya. */
+        const val TOMBSTONES_FROM_START = "1970-01-01T00:00:00Z"
 
         /** Tope de seguridad del paginado (como `MAX_NOTE_PAGES` en la web). */
         const val MAX_PAGES = 1_000
