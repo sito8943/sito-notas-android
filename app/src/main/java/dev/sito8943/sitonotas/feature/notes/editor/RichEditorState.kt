@@ -137,7 +137,7 @@ class RichEditorState(markdown: String, private val onChange: (String) -> Unit) 
     /** Toque bajo el ultimo bloque: foco al final, o un parrafo nuevo si alli no se escribe. */
     fun focusEnd() {
         val last = blocks.lastOrNull()
-        if (last == null || last.type == BlockType.CODE || last.type == BlockType.RULE) {
+        if (last == null || last.type == BlockType.CODE || last.type == BlockType.RULE || last.type == BlockType.IMAGE) {
             val paragraph = EditorBlock(ids.next(), BlockType.PARAGRAPH, "", "")
             blocks = blocks + paragraph
             focus(paragraph.id)
@@ -145,6 +145,34 @@ class RichEditorState(markdown: String, private val onChange: (String) -> Unit) 
         } else {
             focus(last.id)
         }
+    }
+
+    /**
+     * Imagenes ya subidas, en el cursor del ultimo bloque con foco (o al
+     * final). Se llama cuando termina la subida: el documento pudo cambiar
+     * mientras tanto, por eso se busca el bloque ahora.
+     */
+    fun insertImages(urls: List<String>) {
+        if (urls.isEmpty()) return
+        val index = blocks.indexOfFirst { it.id == focusedId }.takeIf { it >= 0 }
+        val caret = index?.let { caretOf(blocks[it]) } ?: 0
+        val result = EditorOps.insertImages(blocks, index, caret, urls, ids)
+        blocks = result.blocks
+        if (blocks.any { it.id == result.focusId && it.type != BlockType.IMAGE }) {
+            moveCaret(result.focusId, result.caret)
+            focusRequest = result.focusId
+        }
+        values.keys.retainAll(blocks.mapTo(mutableSetOf()) { it.id })
+        emit()
+    }
+
+    /** Quita un bloque (imagen) del documento. */
+    fun removeBlock(blockId: Long) {
+        val updated = EditorOps.removeBlock(blocks, blockId)
+        if (updated.size == blocks.size) return
+        blocks = updated
+        if (focusedId == blockId) focusedId = null
+        emit()
     }
 
     internal fun consumeFocusRequest() {
@@ -202,4 +230,4 @@ class RichEditorState(markdown: String, private val onChange: (String) -> Unit) 
 
 /** Bloques donde se pintan negrita, enlaces, etc. (no en codigo ni en lo crudo). */
 val EditorBlock.supportsInline: Boolean
-    get() = type != BlockType.CODE && type != BlockType.RAW && type != BlockType.RULE
+    get() = type != BlockType.CODE && type != BlockType.RAW && type != BlockType.RULE && type != BlockType.IMAGE

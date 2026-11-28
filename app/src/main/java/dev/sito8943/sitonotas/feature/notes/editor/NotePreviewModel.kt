@@ -97,7 +97,8 @@ object NotePreviewModel {
                     items += PreviewItem(PreviewKind.RULE, "")
                     open = false
                 }
-                BlockType.RAW -> open = raw(raw, items, open)
+                // Como la web: la imagen no sale en la tarjeta (DOMPurify sin `img`).
+                BlockType.RAW, BlockType.IMAGE -> open = raw(raw, items, open)
             }
         }
         return items.filter { it.kind == PreviewKind.RULE || it.kind == PreviewKind.CODE || it.text.isNotBlank() }
