@@ -207,8 +207,10 @@ private fun SignInDestination(
         state = state,
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
-        onSubmit = viewModel::signIn,
+        onSubmit = viewModel::submit,
         onForgotPassword = viewModel::forgotPassword,
         onContinueWithoutAccount = onContinueWithoutAccount,
+        onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+        onToggleMode = viewModel::toggleMode,
     )
 }
